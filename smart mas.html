@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حسابات المهندس ⚡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#101315;--panel:#181d21;--panel2:#20262c;--line:#2d353d;
+  --text:#eeeae3;--muted:#8e99a4;--accent:#d58a45;--accent2:#f0b16d;
+  --green:#5fbd8c;--red:#d36d59;--yellow:#e6b84f;--blue:#6ba9df;
+  --shadow:0 12px 35px rgba(0,0,0,.22);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif}
+body{padding-bottom:40px}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{max-width:1200px;margin:auto;padding:18px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{font-family:Tajawal;font-weight:900;font-size:25px}
+.brand span{color:var(--accent2)}
+.top-actions{display:flex;gap:8px}
+.icon-btn,.ghost-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:10px 13px}
+.icon-btn:hover,.ghost-btn:hover{border-color:var(--accent);color:var(--text)}
+.layout{display:grid;grid-template-columns:230px 1fr;gap:18px}
+.sidebar{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;height:max-content;position:sticky;top:14px}
+.nav-title{font-size:11px;color:var(--muted);padding:8px 10px}
+.nav-btn{width:100%;border:0;background:transparent;color:var(--muted);text-align:right;padding:12px;border-radius:10px;margin-bottom:4px}
+.nav-btn.active,.nav-btn:hover{background:var(--panel2);color:var(--accent2)}
+.content{min-width:0}
+.page{display:none}.page.active{display:block}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.page-head h2{font-family:Tajawal;margin:0;font-size:23px}
+.page-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.primary{background:var(--accent);color:#1b1208;border:0;border-radius:10px;padding:11px 16px;font-weight:800}
+.primary:hover{background:var(--accent2)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:linear-gradient(180deg,var(--panel),#15191c);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.card .label{color:var(--muted);font-size:12px;margin-bottom:8px}
+.card .value{font-family:'JetBrains Mono';font-size:24px;font-weight:700;direction:ltr;text-align:right}
+.card .value.green{color:var(--green)}.card .value.red{color:var(--red)}.card .value.yellow{color:var(--yellow)}.card .value.blue{color:var(--blue)}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.panel-title h3{font-family:Tajawal;margin:0;font-size:16px}
+.small{font-size:12px;color:var(--muted)}
+.project-card{border:1px solid var(--line);background:var(--panel2);border-radius:13px;padding:14px;margin-bottom:9px}
+.project-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.project-name{font-family:Tajawal;font-weight:800}
+.project-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.project-balance{font-family:'JetBrains Mono';font-weight:700;direction:ltr}
+.progress{height:6px;background:#303840;border-radius:5px;overflow:hidden;margin-top:11px}
+.progress span{display:block;height:100%;background:var(--accent);border-radius:5px}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;font-size:11px;background:#293038;color:var(--muted)}
+.badge.green{color:var(--green);background:rgba(95,189,140,.12)}
+.badge.red{color:var(--red);background:rgba(211,109,89,.12)}
+.badge.yellow{color:var(--yellow);background:rgba(230,184,79,.12)}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:right;font-size:13px}
+th{color:var(--muted);font-weight:500}
+.amount{font-family:'JetBrains Mono';direction:ltr;text-align:right;font-weight:700}
+.amount.in{color:var(--green)}.amount.out{color:var(--red)}
+.empty{text-align:center;padding:30px;color:var(--muted)}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{min-height:80px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.form-group label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.show{display:flex}
+.modal-box{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-head h3{font-family:Tajawal;margin:0}
+.close{background:none;border:0;color:var(--muted);font-size:22px}
+.form-actions{display:flex;gap:8px;justify-content:flex-start;margin-top:16px}
+.lock-screen{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:50}
+.lock-box{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;text-align:center}
+.lock-box h2{margin:0 0 18px;font-family:Tajawal}
+.lock-box input{width:100%;margin-bottom:12px}
+.lock-box .lock-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+.danger{background:transparent;color:var(--red);border:1px solid rgba(211,109,89,.4);border-radius:9px;padding:9px 13px}
+.tx-type{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
+.tx-type button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:9px 5px;border-radius:8px;font-size:12px}
+.tx-type button.active{border-color:var(--accent);color:var(--accent2);background:rgba(213,138,69,.1)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#293038;color:var(--text);padding:10px 15px;border-radius:9px;opacity:0;pointer-events:none;transition:.25s;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow:auto;gap:5px}.nav-title{display:none}.nav-btn{min-width:max-content;margin:0}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+@media(max-width:520px){.app{padding:12px}.brand{font-size:20px}.cards{gap:8px}.card{padding:12px}.card .value{font-size:19px}.form-grid{grid-template-columns:1fr}.tx-type{grid-template-columns:repeat(3,1fr)}.page-head{align-items:flex-start;flex-direction:column}}
+@media(max-width:420px){.topbar{flex-direction:column;align-items:flex-start}.top-actions{width:100%;justify-content:stretch;flex-wrap:wrap}.top-actions button{flex:1 1 100%;min-width:0}.sidebar{position:static;display:block}.nav-btn{width:100%;text-align:right;padding:12px}.cards{grid-template-columns:1fr}.project-row{flex-direction:column;align-items:flex-start}.project-row > div:last-child{margin-top:10px}.panel-title{flex-direction:column;align-items:flex-start;gap:10px}.table-wrap{overflow-x:auto}.table-wrap table{min-width:auto}.th,td{font-size:12px}.project-card{padding:12px}.modal-box{padding:16px}.lock-box{padding:20px}}</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">حسابات <span>المهندس ⚡</span></div>
+    <div class="top-actions">
+      <button class="ghost-btn" id="exportBtn">تصدير البيانات</button>
+      <button class="icon-btn" id="resetBtn" title="مسح كل البيانات">⟲</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="nav-title">القائمة الرئيسية</div>
+      <button class="nav-btn active" data-page="dashboard">📊 لوحة التحكم</button>
+      <button class="nav-btn" data-page="projects">🏗️ المشاريع</button>
+      <button class="nav-btn" data-page="clients">👥 العملاء</button>
+      <button class="nav-btn" data-page="suppliers">📦 الموردين</button>
+      <button class="nav-btn" data-page="transactions">💰 كل الحركات</button>
+      <button class="nav-btn" data-page="reports">📈 التقارير</button>
+    </aside>
+
+    <main class="content">
+      <section class="page active" id="page-dashboard">
+        <div class="page-head">
+          <div><h2>لوحة التحكم</h2><p>نظرة سريعة على حسابات شغلك ومشاريعك</p></div>
+          <button class="primary" onclick="openProjectModal()">+ مشروع جديد</button>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="label">صافي الرصيد</div><div class="value" id="statBalance">0</div></div>
+          <div class="card"><div class="label">المستحق لك</div><div class="value green" id="statReceivable">0</div></div>
+          <div class="card"><div class="label">المستحق عليك</div><div class="value red" id="statPayable">0</div></div>
+          <div class="card"><div class="label">صافي الربح</div><div class="value yellow" id="statProfit">0</div></div>
+        </div>
+        <div class="grid2">
+          <div class="panel">
+            <div class="panel-title"><h3>المشاريع النشطة</h3><span class="small" id="projectCount"></span></div>
+            <div id="dashboardProjects"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title"><h3>آخر الحركات</h3></div>
+            <div id="recentTransactions"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-projects">
+        <div class="page-head">
+          <div><h2>المشاريع</h2><p>تابع كل مشروع ومقبوضاته ومصروفاته وربحه</p></div>
+          <button class="primary" onclick="openProjectModal()">+ إضافة مشروع</button>
+        </div>
+        <div class="search-row"><input id="projectSearch" placeholder="بحث باسم المشروع أو العميل..."></div>
+        <div id="projectsPageList"></div>
+      </section>
+
+      <section class="page" id="page-clients">
+        <div class="page-head"><div><h2>العملاء</h2><p>الأرصدة والمبالغ المستحقة من العملاء</p></div><button class="primary" onclick="openContactModal('client')">+ عميل جديد</button></div>
+        <div id="clientsList"></div>
+      </section>
+
+      <section class="page" id="page-suppliers">
+        <div class="page-head"><div><h2>الموردين</h2><p>المشتريات والمبالغ المستحقة للموردين</p></div><button class="primary" onclick="openContactModal('supplier')">+ مورد جديد</button></div>
+        <div id="suppliersList"></div>
+      </section>
+
+      <section class="page" id="page-transactions">
+        <div class="page-head"><div><h2>كل الحركات</h2><p>سجل كامل لكل قبض ومصروف ومشتريات ومصنعية</p></div><button class="primary" onclick="openTransactionModal()">+ إضافة حركة</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>المشروع</th><th>الطرف</th><th>المبلغ</th><th>فاتورة</th><th></th></tr></thead><tbody id="allTransactions"></tbody></table></div></div>
+      </section>
+
+      <section class="page" id="page-reports">
+        <div class="page-head"><div><h2>التقارير</h2><p>ملخص مالي سريع حسب نوع الحركة</p></div></div>
+        <div class="cards">
+          <div class="card"><div class="label">إجمالي المقبوضات</div><div class="value green" id="repPayments">0</div></div>
+          <div class="card"><div class="label">إجمالي البضاعة</div><div class="value red" id="repPurchases">0</div></div>
+          <div class="card"><div class="label">إجمالي المصنعية</div><div class="value red" id="repLabor">0</div></div>
+          <div class="card"><div class="label">إجمالي المصروفات</div><div class="value red" id="repExpenses">0</div></div>
+        </div>
+        <div class="panel"><div class="panel-title"><h3>ملخص المشاريع</h3></div><div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقبوض</th><th>التكاليف</th><th>الربح</th><th>المتبقي</th></tr></thead><tbody id="reportProjects"></tbody></table></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle"></h3><button class="close" onclick="closeModal()">×</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="lock-screen" id="lockScreen" style="display:none;">
+  <div class="lock-box">
+    <h2>أدخل كلمة المرور</h2>
+    <input id="lockPassword" type="password" placeholder="كلمة المرور">
+    <button class="primary" onclick="unlockApp()">فتح</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
+<script>
+const KEY='engineer_accounts_v2';
+let db={projects:[], clients:[], suppliers:[], transactions:[]};
+let currentTxType='payment';
+
+const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const money=n=>fmt(n)+' ج.م';
+
+function loadDb(){
+  try{
+    const saved=localStorage.getItem(KEY);
+    if(saved){
+      const parsed=JSON.parse(saved);
+      db=parsed && typeof parsed==='object' ? parsed : {projects:[], clients:[], suppliers:[], transactions:[]};
+    }
+  }catch(e){
+    db={projects:[], clients:[], suppliers:[], transactions:[]};
+  }
+}
+
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(db));
+}
+const projectById=x=>db.projects.find(p=>p.id===x);
+const clientById=x=>db.clients.find(p=>p.id===x);
+const supplierById=x=>db.suppliers.find(p=>p.id===x);
+
+const PAGE_PASSWORD='31219851831';
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function openModal(title,body){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show')}
+function showLock(){document.getElementById('lockScreen').style.display='flex';}
+function hideLock(){document.getElementById('lockScreen').style.display='none';}
+function unlockApp(){const input=document.getElementById('lockPassword');const value=input.value.trim();const err=document.getElementById('lockError');if(value===PAGE_PASSWORD){sessionStorage.setItem('engineer_accounts_unlocked','1');hideLock();initApp();} else {err.textContent='كلمة المرور غير صحيحة';input.value='';input.focus();}}
+function initLock(){if(sessionStorage.getItem('engineer_accounts_unlocked')==='1'){hideLock();initApp();} else {showLock();setTimeout(()=>document.getElementById('lockPassword').focus(),50);}}
+
+window.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('lockScreen').style.display==='flex'){e.preventDefault();unlockApp();}});
+
+function typeLabel(t){return {payment:'دفعة من العميل',purchase:'بضاعة / مشتريات',labor:'مصنعية',expense:'مصروفات',withdrawal:'سحب شخصي'}[t]||t}
+function typeClass(t){return t==='payment'?'green':'red'}
+
+function projectStats(pid){
+  const tx=db.transactions.filter(t=>t.projectId===pid);
+  const inSum=tx.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
+  const costs=tx.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
+  const profit=inSum-costs;
+  const p=projectById(pid);
+  const remaining=Math.max(0,(p?.value||0)-inSum);
+  return {inSum,costs,profit,remaining,tx};
+}
+function totals(){
+  const incoming=db.transactions.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
+  const outgoing=db.transactions.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
+  const projectReceivable=db.projects.reduce((a,p)=>a+projectStats(p.id).remaining,0);
+  const payable=db.suppliers.reduce((a,s)=>a+(s.balance||0),0);
+  return {incoming,outgoing,balance:incoming-outgoing,receivable:projectReceivable,payable,profit:incoming-outgoing};
+}
+
+function renderDashboard(){
+  const t=totals();
+  document.getElementById('statBalance').textContent=money(t.balance);
+  document.getElementById('statReceivable').textContent=money(t.receivable);
+  document.getElementById('statPayable').textContent=money(t.payable);
+  document.getElementById('statProfit').textContent=money(t.profit);
+  document.getElementById('projectCount').textContent=db.projects.length+' مشروع';
+  const list=document.getElementById('dashboardProjects');
+  list.innerHTML=db.projects.slice(0,8).map(p=>{
+    const s=projectStats(p.id), ratio=p.value?Math.min(100,s.inSum/p.value*100):0;
+    return `<div class="project-card" onclick="openProjectDetails('${p.id}')">
+      <div class="project-row"><div><div class="project-name">${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')}</div></div>
+      <div class="project-balance ${s.remaining>0?'':'green'}">${money(s.remaining)}</div></div>
+      <div class="progress"><span style="width:${ratio}%"></span></div>
+      <div class="project-meta">مقبوض ${money(s.inSum)} · ربح ${money(s.profit)}</div>
+    </div>`;
+  }).join('')||'<div class="empty">لا يوجد مشاريع بعد</div>';
+  renderRecent();
+}
+function renderRecent(){
+  const el=document.getElementById('recentTransactions');
+  const arr=[...db.transactions].sort((a,b)=>b.created-a.created).slice(0,7);
+  el.innerHTML=arr.map(t=>`<div class="project-card">
+    <div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div>
+    <div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${fmt(t.amount)}</div></div>
+  </div>`).join('')||'<div class="empty">لا توجد حركات</div>';
+}
+
+function renderProjects(){
+  const q=(document.getElementById('projectSearch')?.value||'').toLowerCase();
+  const el=document.getElementById('projectsPageList');
+  const arr=db.projects.filter(p=>(p.name+' '+(p.clientName||'')).toLowerCase().includes(q));
+  el.innerHTML=arr.map(p=>{
+    const s=projectStats(p.id);
+    return `<div class="panel">
+      <div class="project-row"><div><div class="project-name">${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · قيمة المشروع ${money(p.value)}</div></div>
+      <div><button class="ghost-btn" onclick="openProjectDetails('${p.id}')">فتح</button></div></div>
+      <div class="cards" style="margin:14px 0 0;grid-template-columns:repeat(4,1fr)">
+        <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
+        <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
+        <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
+        <div class="card"><div class="label">المتبقي</div><div class="value blue">${fmt(s.remaining)}</div></div>
+      </div>
+    </div>`;
+  }).join('')||'<div class="panel empty">لا توجد مشاريع</div>';
+}
+
+function renderContacts(kind){
+  const arr=kind==='client'?db.clients:db.suppliers;
+  const el=document.getElementById(kind==='client'?'clientsList':'suppliersList');
+  el.innerHTML=arr.map(x=>`<div class="panel"><div class="project-row">
+    <div><div class="project-name">${esc(x.name)}</div><div class="project-meta">${esc(x.phone||'بدون هاتف')} ${x.notes?' · '+esc(x.notes):''}</div></div>
+    <div class="amount ${kind==='client'?'green':'red'}">${money(x.balance||0)}</div>
+  </div></div>`).join('')||'<div class="panel empty">لا توجد بيانات</div>';
+}
+
+function renderTransactions(){
+  const el=document.getElementById('allTransactions');
+  const arr=[...db.transactions].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(t=>{
+    const p=projectById(t.projectId);
+    const party=t.partyName||'';
+    return `<tr><td>${t.date}</td><td><span class="badge ${typeClass(t.type)}">${typeLabel(t.type)}</span></td><td>${esc(t.desc||'-')}</td><td>${esc(p?.name||'-')}</td><td>${esc(party||'-')}</td><td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</td><td>${t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">فاتورة</button>`:'-'}</td><td><button class="danger" onclick="deleteTx('${t.id}')">حذف</button></td></tr>`;
+  }).join('')||'<tr><td colspan="8" class="empty">لا توجد حركات</td></tr>';
+}
+function renderReports(){
+  const sum=t=>db.transactions.filter(x=>x.type===t).reduce((a,x)=>a+x.amount,0);
+  document.getElementById('repPayments').textContent=money(sum('payment'));
+  document.getElementById('repPurchases').textContent=money(sum('purchase'));
+  document.getElementById('repLabor').textContent=money(sum('labor'));
+  document.getElementById('repExpenses').textContent=money(sum('expense')+sum('withdrawal'));
+  document.getElementById('reportProjects').innerHTML=db.projects.map(p=>{
+    const s=projectStats(p.id);
+    return `<tr><td>${esc(p.name)}</td><td class="amount in">${money(s.inSum)}</td><td class="amount out">${money(s.costs)}</td><td class="amount ${s.profit>=0?'in':'out'}">${money(s.profit)}</td><td class="amount">${money(s.remaining)}</td></tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty">لا توجد مشاريع</td></tr>';
+}
+
+function renderAll(){
+  renderDashboard();
+  renderProjects();
+  renderContacts('client');
+  renderContacts('supplier');
+  renderTransactions();
+  renderReports();
+  save();
+}
+
+function initApp(){
+  loadDb();
+  renderAll();
+}
+
+function openProjectModal(){
+  openModal('إضافة مشروع',`<div class="form-grid">
+    <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" placeholder="مثال: مصنع النور"></div>
+    <div class="form-group"><label>اسم العميل</label><input id="fClientName" placeholder="اسم الشركة أو المصنع"></div>
+    <div class="form-group"><label>قيمة المشروع</label><input id="fProjectValue" type="number" placeholder="0"></div>
+    <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  </div><div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fProjectNotes"></textarea></div>
+  <div class="form-actions"><button class="primary" onclick="createProject()">حفظ المشروع</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`);
+}
+function createProject(){
+  const name=document.getElementById('fProjectName').value.trim(); if(!name)return toast('اكتب اسم المشروع');
+  db.projects.push({id:id(),name,clientName:document.getElementById('fClientName').value.trim(),value:+document.getElementById('fProjectValue').value||0,date:document.getElementById('fProjectDate').value,notes:document.getElementById('fProjectNotes').value});
+  closeModal();renderAll();toast('تم إضافة المشروع');
+}
+
+function openContactModal(kind){
+  const title=kind==='client'?'إضافة عميل':'إضافة مورد';
+  openModal(title,`<div class="form-grid"><div class="form-group"><label>الاسم</label><input id="fContactName"></div><div class="form-group"><label>الهاتف</label><input id="fContactPhone"></div><div class="form-group"><label>الرصيد الحالي</label><input id="fContactBalance" type="number" value="0"></div><div class="form-group"><label>ملاحظات</label><input id="fContactNotes"></div></div><div class="form-actions"><button class="primary" onclick="createContact('${kind}')">حفظ</button></div>`);
+}
+function createContact(kind){
+  const name=document.getElementById('fContactName').value.trim();if(!name)return toast('اكتب الاسم');
+  const obj={id:id(),name,phone:document.getElementById('fContactPhone').value.trim(),balance:+document.getElementById('fContactBalance').value||0,notes:document.getElementById('fContactNotes').value.trim()};
+  (kind==='client'?db.clients:db.suppliers).push(obj);closeModal();renderAll();toast('تم الحفظ');
+}
+
+function openTransactionModal(projectId=''){
+  currentTxType='payment';
+  openModal('إضافة حركة',`<div class="tx-type">${['payment','purchase','labor','expense','withdrawal'].map((t,i)=>`<button class="${i===0?'active':''}" data-txtype="${t}" onclick="selectTxType('${t}',this)">${typeLabel(t)}</button>`).join('')}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>المشروع</label><select id="fTxProject"><option value="">بدون مشروع</option>${db.projects.map(p=>`<option value="${p.id}"${p.id===projectId?' selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="form-group"><label>المبلغ</label><input id="fTxAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>البيان</label><input id="fTxDesc" placeholder="مثال: دفعة أولى / شراء كابلات"></div>
+    <div class="form-group"><label>اسم الطرف</label><input id="fTxParty" placeholder="عميل / مورد / فني"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fTxDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>صورة الفاتورة</label><input id="fTxInvoice" type="file" accept="image/*"></div>
+  </div><div class="form-actions"><button class="primary" onclick="createTransaction()">إضافة الحركة</button></div>`);
+}
+function selectTxType(t,btn){currentTxType=t;document.querySelectorAll('[data-txtype]').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+async function createTransaction(){
+  const amount=+document.getElementById('fTxAmount').value;if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const invoiceInput=document.getElementById('fTxInvoice');
+  let invoiceImage='';
+  let invoiceName='';
+  if(invoiceInput?.files?.[0]){
+    invoiceName=invoiceInput.files[0].name;
+    invoiceImage=await readFileAsDataURL(invoiceInput.files[0]);
+  }
+  db.transactions.push({id:id(),type:currentTxType,amount,projectId:document.getElementById('fTxProject').value,desc:document.getElementById('fTxDesc').value.trim(),partyName:document.getElementById('fTxParty').value.trim(),date:document.getElementById('fTxDate').value,created:Date.now(),invoiceImage,invoiceName});
+  closeModal();renderAll();toast('تمت إضافة الحركة');
+}
+function deleteTx(txid){if(!confirm('حذف الحركة؟'))return;db.transactions=db.transactions.filter(x=>x.id!==txid);renderAll();toast('تم الحذف')}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+function viewInvoice(txid){
+  const tx=db.transactions.find(t=>t.id===txid);
+  if(!tx?.invoiceImage)return toast('لا توجد فاتورة');
+  openModal('فاتورة الحركة',`<div class="panel" style="text-align:center;"><div class="project-meta">${esc(tx.invoiceName||'صورة الفاتورة')}</div><img src="${tx.invoiceImage}" alt="فاتورة" style="max-width:100%;border-radius:14px;margin-top:10px"></div>`);
+}
+function printProjectPdf(pid){
+  const p=projectById(pid), s=projectStats(pid);
+  const rows=s.tx.sort((a,b)=>b.created-a.created).map(t=>`
+      <tr>
+        <td>${t.date}</td>
+        <td>${typeLabel(t.type)}</td>
+        <td>${esc(t.desc||'-')}</td>
+        <td>${esc(t.partyName||'-')}</td>
+        <td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${fmt(t.amount)}</td>
+      </tr>
+    `).join('')||'<tr><td colspan="5" class="empty">لا توجد حركات</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>قيمة المشروع:</strong> ${money(p.value)}</div><div><strong>المتبقي:</strong> ${money(s.remaining)}</div></div><div class="summary"><div><strong>المقبوض:</strong> ${money(s.inSum)}</div><div><strong>التكاليف:</strong> ${money(s.costs)}</div></div><div class="summary"><div><strong>الربح:</strong> ${money(s.profit)}</div><div></div></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function openProjectDetails(pid){
+  const p=projectById(pid),s=projectStats(pid);
+  openModal(p.name,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
+    <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
+    <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
+    <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
+    <div class="card"><div class="label">المتبقي</div><div class="value blue">${fmt(s.remaining)}</div></div>
+  </div>
+  <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
+  ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
+    const invoiceHtml=t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">عرض الفاتورة</button>`:'<span class="badge">بدون فاتورة</span>';
+    return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml}</div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</div></div></div>`;
+  }).join('')||'<div class="empty">لا توجد حركات</div>'}</div>`);
+}
+function openProjectDelete(pid){
+  openModal('حذف المشروع',`<div class="form-group"><label>أدخل كلمة المرور لحذف المشروع</label><input id="deleteProjectPassword" type="password" placeholder="كلمة المرور"></div><div class="form-actions"><button class="danger" onclick="confirmProjectDelete('${pid}')">حذف</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`);
+}
+
+function confirmProjectDelete(pid){
+  const pw=document.getElementById('deleteProjectPassword').value.trim();
+  if(pw!==PAGE_PASSWORD){toast('كلمة المرور غير صحيحة');return;}
+  if(!confirm('هل أنت متأكد من حذف هذا المشروع وكل الحركات المرتبطة به؟'))return;
+  db.projects=db.projects.filter(x=>x.id!==pid);
+  db.transactions=db.transactions.filter(x=>x.projectId!==pid);
+  closeModal();renderAll();toast('تم حذف المشروع');
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+btn.dataset.page).classList.add('active');
+  renderAll();
+}));
+document.getElementById('projectSearch').addEventListener('input',renderProjects);
+document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[]};renderAll();toast('تم مسح البيانات')}})
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='engineer-accounts-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم تصدير النسخة الاحتياطية');
+});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+initApp();
+initLock();
+</script>
+</body>
+</html>
