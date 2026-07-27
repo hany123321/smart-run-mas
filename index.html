@@ -285,13 +285,20 @@ window.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementByI
 function typeLabel(t){return {payment:'دفعة من العميل',purchase:'بضاعة / مشتريات',labor:'مصنعية',expense:'مصروفات',withdrawal:'سحب شخصي'}[t]||t}
 function typeClass(t){return t==='payment'?'green':'red'}
 
+// القيمة الإجمالية المتفق عليها = القيمة الأساسية + إجمالي زيادات الشغل المضافة بعدين
+function projectValue(p){
+  if(!p) return 0;
+  const additions=(p.additions||[]).reduce((a,x)=>a+x.amount,0);
+  return (p.value||0)+additions;
+}
+
 function projectStats(pid){
   const tx=db.transactions.filter(t=>t.projectId===pid);
   const inSum=tx.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
   const costs=tx.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
   const profit=inSum-costs;
   const p=projectById(pid);
-  const remaining=Math.max(0,(p?.value||0)-inSum);
+  const remaining=Math.max(0,projectValue(p)-inSum);
   return {inSum,costs,profit,remaining,tx};
 }
 function totals(){
@@ -311,9 +318,9 @@ function renderDashboard(){
   document.getElementById('projectCount').textContent=db.projects.length+' مشروع';
   const list=document.getElementById('dashboardProjects');
   list.innerHTML=db.projects.slice(0,8).map(p=>{
-    const s=projectStats(p.id), ratio=p.value?Math.min(100,s.inSum/p.value*100):0;
+    const s=projectStats(p.id), ratio=projectValue(p)?Math.min(100,s.inSum/projectValue(p)*100):0;
     return `<div class="project-card" style="border-inline-start-color:${projectColor(p)}" onclick="openProjectDetails('${p.id}')">
-      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(p.value)}</div></div>
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(projectValue(p))}</div></div>
       <div class="project-balance ${s.remaining>0?'':'green'}">${money(s.remaining)}</div></div>
       <div class="progress"><span style="width:${ratio}%"></span></div>
       <div class="project-meta">مقبوض ${money(s.inSum)} · ربح ${money(s.profit)}</div>
@@ -337,7 +344,7 @@ function renderProjects(){
   el.innerHTML=arr.map(p=>{
     const s=projectStats(p.id);
     return `<div class="panel" style="border-inline-start:5px solid ${projectColor(p)}">
-      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(p.value)}</div></div>
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(projectValue(p))}</div></div>
       <div><button class="ghost-btn" onclick="openProjectDetails('${p.id}')">فتح</button></div></div>
       <div class="cards" style="margin:14px 0 0;grid-template-columns:repeat(4,1fr)">
         <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
@@ -364,7 +371,7 @@ function renderTransactions(){
   el.innerHTML=arr.map(t=>{
     const p=projectById(t.projectId);
     const party=t.partyName||'';
-    return `<tr><td>${t.date}</td><td><span class="badge ${typeClass(t.type)}">${typeLabel(t.type)}</span></td><td>${esc(t.desc||'-')}</td><td>${esc(p?.name||'-')}</td><td>${esc(party||'-')}</td><td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</td><td>${t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">فاتورة</button>`:'-'}</td><td><button class="danger" onclick="deleteTx('${t.id}')">حذف</button></td></tr>`;
+    return `<tr><td>${t.date}</td><td><span class="badge ${typeClass(t.type)}">${typeLabel(t.type)}</span></td><td>${esc(t.desc||'-')}</td><td>${esc(p?.name||'-')}</td><td>${esc(party||'-')}</td><td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</td><td>${t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">فاتورة</button>`:'-'}</td><td><button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}')">حذف</button></td></tr>`;
   }).join('')||'<tr><td colspan="8" class="empty">لا توجد حركات</td></tr>';
 }
 function renderReports(){
@@ -488,6 +495,36 @@ async function createTransaction(){
 }
 function deleteTx(txid){if(!confirm('حذف الحركة؟'))return;db.transactions=db.transactions.filter(x=>x.id!==txid);renderAll();toast('تم الحذف')}
 
+function openTxEdit(txid){
+  const t=db.transactions.find(x=>x.id===txid); if(!t)return;
+  currentTxType=t.type;
+  openModal('تعديل الحركة',`<div class="tx-type">${['payment','purchase','labor','expense','withdrawal'].map(tp=>`<button class="${tp===t.type?'active':''}" data-txtype="${tp}" onclick="selectTxType('${tp}',this)">${typeLabel(tp)}</button>`).join('')}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>المشروع</label><select id="fTxProject"><option value="">بدون مشروع</option>${db.projects.map(p=>`<option value="${p.id}"${p.id===t.projectId?' selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="form-group"><label>المبلغ</label><input id="fTxAmount" type="number" value="${t.amount}"></div>
+    <div class="form-group"><label>البيان</label><input id="fTxDesc" value="${esc(t.desc||'')}"></div>
+    <div class="form-group"><label>اسم الطرف</label><input id="fTxParty" value="${esc(t.partyName||'')}"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fTxDate" type="date" value="${esc(t.date||'')}"></div>
+    <div class="form-group"><label>صورة الفاتورة (اتركها فاضية للاحتفاظ بالحالية)</label><input id="fTxInvoice" type="file" accept="image/*"></div>
+  </div><div class="form-actions"><button class="primary" onclick="saveTxEdit('${txid}')">حفظ التعديل</button><button class="danger" onclick="deleteTx('${txid}');closeModal()">حذف الحركة</button></div>`);
+}
+async function saveTxEdit(txid){
+  const t=db.transactions.find(x=>x.id===txid); if(!t)return;
+  const amount=+document.getElementById('fTxAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const invoiceInput=document.getElementById('fTxInvoice');
+  if(invoiceInput?.files?.[0]){
+    t.invoiceName=invoiceInput.files[0].name;
+    t.invoiceImage=await readFileAsDataURL(invoiceInput.files[0]);
+  }
+  t.type=currentTxType;
+  t.amount=amount;
+  t.projectId=document.getElementById('fTxProject').value;
+  t.desc=document.getElementById('fTxDesc').value.trim();
+  t.partyName=document.getElementById('fTxParty').value.trim();
+  t.date=document.getElementById('fTxDate').value;
+  closeModal();renderAll();toast('تم حفظ التعديل');
+}
+
 function readFileAsDataURL(file){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -512,8 +549,11 @@ function printProjectPdf(pid){
         <td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${fmt(t.amount)}</td>
       </tr>
     `).join('')||'<tr><td colspan="5" class="empty">لا توجد حركات</td></tr>';
+  const additions=p.additions||[];
+  const additionsRows=additions.map(a=>`<tr><td>${a.date||'-'}</td><td>${esc(a.desc||'-')}</td><td class="amount">+${fmt(a.amount)}</td></tr>`).join('');
+  const additionsHtml=additions.length?`<h3 style="margin-top:24px">زيادات الشغل</h3><table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>${additionsRows}</tbody></table>`:'';
   const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>القيمة المتفق عليها:</strong> ${money(p.value)}</div><div><strong>المتبقي:</strong> ${money(s.remaining)}</div></div><div class="summary"><div><strong>المقبوض:</strong> ${money(s.inSum)}</div><div><strong>التكاليف:</strong> ${money(s.costs)}</div></div><div class="summary"><div><strong>الربح:</strong> ${money(s.profit)}</div><div></div></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2,h3{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>القيمة الأساسية:</strong> ${money(p.value)}</div><div><strong>القيمة المتفق عليها (بعد الزيادات):</strong> ${money(projectValue(p))}</div></div><div class="summary"><div><strong>المتبقي:</strong> ${money(s.remaining)}</div><div><strong>المقبوض:</strong> ${money(s.inSum)}</div></div><div class="summary"><div><strong>التكاليف:</strong> ${money(s.costs)}</div><div><strong>الربح:</strong> ${money(s.profit)}</div></div>${additionsHtml}<h3 style="margin-top:24px">حركات المشروع</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   win.document.close();
   win.focus();
   win.print();
@@ -521,18 +561,47 @@ function printProjectPdf(pid){
 
 function openProjectDetails(pid){
   const p=projectById(pid),s=projectStats(pid);
+  const additions=p.additions||[];
   openModal(`<span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}`,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
-    <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${fmt(p.value)}</div></div>
+    <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${fmt(projectValue(p))}</div></div>
     <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
     <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
     <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
     <div class="card"><div class="label">المتبقي</div><div class="value blue">${fmt(s.remaining)}</div></div>
   </div>
+  ${additions.length?`<div class="small" style="margin-bottom:10px">القيمة الأساسية ${money(p.value)} + زيادات الشغل ${money(additions.reduce((a,x)=>a+x.amount,0))} = الإجمالي ${money(projectValue(p))}</div>`:''}
+  <div class="panel"><div class="panel-title"><h3>زيادات الشغل</h3><button class="ghost-btn" onclick="openAdditionModal('${pid}')">+ زيادة شغل</button></div>
+  ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${money(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
+  </div>
   <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
   ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
     const invoiceHtml=t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">عرض الفاتورة</button>`:'<span class="badge">بدون فاتورة</span>';
-    return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml}</div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</div></div></div>`;
+    return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml} <button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}');openProjectDetails('${pid}')">حذف</button></div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</div></div></div>`;
   }).join('')||'<div class="empty">لا توجد حركات</div>'}</div>`);
+}
+function openAdditionModal(pid){
+  openModal('إضافة زيادة شغل',`<div class="form-grid">
+    <div class="form-group"><label>البيان (وصف الشغل الزيادة)</label><input id="fAddDesc" placeholder="مثال: تمديد سلك إضافي"></div>
+    <div class="form-group"><label>التكلفة المتفق عليها</label><input id="fAddAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fAddDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  </div><div class="form-actions"><button class="primary" onclick="saveAddition('${pid}')">إضافة</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function saveAddition(pid){
+  const amount=+document.getElementById('fAddAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const p=projectById(pid); if(!p)return;
+  if(!p.additions) p.additions=[];
+  p.additions.push({id:id(),desc:document.getElementById('fAddDesc').value.trim(),amount,date:document.getElementById('fAddDate').value,created:Date.now()});
+  renderAll();
+  openProjectDetails(pid);
+  toast('تمت إضافة الزيادة وتحديث قيمة المشروع');
+}
+function deleteAddition(pid,addId){
+  if(!confirm('حذف زيادة الشغل دي؟ ده هيقلل قيمة المشروع بنفس المبلغ.'))return;
+  const p=projectById(pid); if(!p)return;
+  p.additions=(p.additions||[]).filter(a=>a.id!==addId);
+  renderAll();
+  openProjectDetails(pid);
+  toast('تم الحذف');
 }
 function openProjectEdit(pid){
   const p=projectById(pid);
