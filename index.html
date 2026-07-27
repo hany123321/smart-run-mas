@@ -501,8 +501,7 @@ function printQuotePdf(qid){
   const rows=(q.items||[]).map(it=>`<tr><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">لا توجد بنود</td></tr>';
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>عرض سعر - ${esc(q.title||q.clientName||'')}</title><style>
-  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px;min-height:100vh;display:flex;flex-direction:column}
-  .content-wrap{flex:1}
+  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
   .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #d58a45;padding-bottom:14px;margin-bottom:20px}
   .company-logo{width:92px;height:92px;object-fit:contain;border-radius:50%}
   h2{margin:0 0 4px}
@@ -514,11 +513,10 @@ function printQuotePdf(qid){
   .totals{margin-top:16px;width:300px;margin-inline-start:auto}
   .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
   .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid #111;padding-top:10px;margin-top:6px}
-  .quote-footer{margin-top:40px;padding-top:16px;border-top:2px solid #d58a45;display:flex;justify-content:center;gap:36px;flex-wrap:wrap}
+  .quote-footer{margin-top:50px;padding-top:16px;border-top:2px solid #d58a45;display:flex;justify-content:center;gap:36px;flex-wrap:wrap;page-break-inside:avoid;break-inside:avoid}
   .quote-footer .item{display:flex;align-items:center;gap:8px;font-size:14px;color:#333;font-weight:700}
   .quote-footer .icon{font-size:18px}
   </style></head><body>
-  <div class="content-wrap">
   <div class="header">
     <img class="company-logo" src="${COMPANY_LOGO}" alt="${COMPANY_NAME}">
     <div style="text-align:left"><h2>عرض سعر</h2><div class="meta">${esc(q.date||'')}</div></div>
@@ -529,7 +527,6 @@ function printQuotePdf(qid){
     <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
     <div><span>المصنعية</span><span>${fmt(q.labor||0)} ج.م</span></div>
     <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
-  </div>
   </div>
   <div class="quote-footer">
     <div class="item"><span class="icon">📞</span><span>${COMPANY_PHONE}</span></div>
