@@ -23,6 +23,7 @@ button{cursor:pointer}
 .brand{font-family:Tajawal;font-weight:900;font-size:25px}
 .brand span{color:var(--accent2)}
 .top-actions{display:flex;gap:8px}
+.menu-toggle{display:none;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:10px 13px;font-size:16px}
 .icon-btn,.ghost-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:10px 13px}
 .icon-btn:hover,.ghost-btn:hover{border-color:var(--accent);color:var(--text)}
 .layout{display:grid;grid-template-columns:230px 1fr;gap:18px}
@@ -97,15 +98,16 @@ textarea{min-height:80px;resize:vertical}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--yellow)}
 .sync-dot.ok{background:var(--green)}
 .sync-dot.err{background:var(--red)}
-@media(max-width:850px){.layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow:auto;gap:5px}.nav-title{display:none}.nav-btn{min-width:max-content;margin:0}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.menu-toggle{display:inline-flex}.sidebar{position:static;display:none;overflow:auto;gap:5px}.sidebar.open{display:flex}.nav-title{display:none}.nav-btn{min-width:max-content;margin:0}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
 @media(max-width:520px){.app{padding:12px}.brand{font-size:20px}.cards{gap:8px}.card{padding:12px}.card .value{font-size:19px}.form-grid{grid-template-columns:1fr}.tx-type{grid-template-columns:repeat(3,1fr)}.page-head{align-items:flex-start;flex-direction:column}}
-@media(max-width:420px){.topbar{flex-direction:column;align-items:flex-start}.top-actions{width:100%;justify-content:stretch;flex-wrap:wrap}.top-actions button{flex:1 1 100%;min-width:0}.sidebar{position:static;display:block}.nav-btn{width:100%;text-align:right;padding:12px}.cards{grid-template-columns:1fr}.project-row{flex-direction:column;align-items:flex-start}.project-row > div:last-child{margin-top:10px}.panel-title{flex-direction:column;align-items:flex-start;gap:10px}.table-wrap{overflow-x:auto}.table-wrap table{min-width:auto}.th,td{font-size:12px}.project-card{padding:12px}.modal-box{padding:16px}.lock-box{padding:20px}}</style>
+@media(max-width:420px){.topbar{flex-direction:column;align-items:flex-start}.top-actions{width:100%;justify-content:stretch;flex-wrap:wrap}.top-actions button{flex:1 1 100%;min-width:0}.sidebar{position:static;display:none}.sidebar.open{display:block}.nav-btn{width:100%;text-align:right;padding:12px}.cards{grid-template-columns:1fr}.project-row{flex-direction:column;align-items:flex-start}.project-row > div:last-child{margin-top:10px}.panel-title{flex-direction:column;align-items:flex-start;gap:10px}.table-wrap{overflow-x:auto}.table-wrap table{min-width:auto}.th,td{font-size:12px}.project-card{padding:12px}.modal-box{padding:16px}.lock-box{padding:20px}}</style>
 </head>
 <body>
 <div class="app">
   <header class="topbar">
     <div class="brand">حسابات <span>المهندس ⚡</span></div>
     <div class="top-actions">
+      <button class="menu-toggle" id="menuToggle" title="القائمة">☰</button>
       <button class="ghost-btn" id="exportBtn">تصدير البيانات</button>
       <button class="icon-btn" id="resetBtn" title="مسح كل البيانات">⟲</button>
     </div>
@@ -577,7 +579,11 @@ document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click',
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+btn.dataset.page).classList.add('active');
   renderUI();
+  document.querySelector('.sidebar').classList.remove('open'); // اقفل القائمة أوتوماتيك بعد اختيار صفحة على الموبايل
 }));
+document.getElementById('menuToggle').addEventListener('click',()=>{
+  document.querySelector('.sidebar').classList.toggle('open');
+});
 document.getElementById('projectSearch').addEventListener('input',renderProjects);
 document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[]};renderAll();toast('تم مسح البيانات')}})
 document.getElementById('exportBtn').addEventListener('click',()=>{
