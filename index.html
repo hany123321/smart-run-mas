@@ -47,7 +47,11 @@ button{cursor:pointer}
 .panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .panel-title h3{font-family:Tajawal;margin:0;font-size:16px}
 .small{font-size:12px;color:var(--muted)}
-.project-card{border:1px solid var(--line);background:var(--panel2);border-radius:13px;padding:14px;margin-bottom:9px}
+.project-card{border:1px solid var(--line);background:var(--panel2);border-radius:13px;padding:14px;margin-bottom:9px;border-inline-start-width:5px;border-inline-start-style:solid}
+.color-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.color-dot{width:26px;height:26px;border-radius:50%;display:inline-block;cursor:pointer;border:2px solid transparent}
+.color-dot.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--panel2)}
+.project-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:7px;flex-shrink:0;vertical-align:middle}
 .project-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .project-name{font-family:Tajawal;font-weight:800}
 .project-meta{font-size:12px;color:var(--muted);margin-top:4px}
@@ -223,6 +227,15 @@ const DOC_REF = firestore.collection('engineer_accounts').doc('main');
 
 let db={projects:[], clients:[], suppliers:[], transactions:[]};
 let currentTxType='payment';
+
+// ألوان مميزة لكل مشروع عشان تقدر تفرق بينهم بسرعة
+const PROJECT_COLORS=['#d58a45','#5fbd8c','#6ba9df','#d36d59','#e6b84f','#a78bda','#4fb8b0','#e08fb0','#8aa9c9','#c9954f','#7fbf6a','#c96bd8'];
+function projectColor(p){
+  if(p.color) return p.color;
+  // fallback لمشاريع قديمة اتعملت قبل إضافة الألوان: لون ثابت مبني على الـ id
+  let h=0; for(const ch of (p.id||'')) h=(h*31+ch.charCodeAt(0))%PROJECT_COLORS.length;
+  return PROJECT_COLORS[h];
+}
 let suppressNextSnapshot=false; // يمنع اللوب لما إحنا نفسنا اللي بنكتب
 
 const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
@@ -259,7 +272,7 @@ const supplierById=x=>db.suppliers.find(p=>p.id===x);
 const PAGE_PASSWORD='31219851831';
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
-function openModal(title,body){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show')}
+function openModal(title,body){document.getElementById('modalTitle').innerHTML=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show')}
 function showLock(){document.getElementById('lockScreen').style.display='flex';}
 function hideLock(){document.getElementById('lockScreen').style.display='none';}
 function unlockApp(){const input=document.getElementById('lockPassword');const value=input.value.trim();const err=document.getElementById('lockError');if(value===PAGE_PASSWORD){sessionStorage.setItem('engineer_accounts_unlocked','1');hideLock();initApp();} else {err.textContent='كلمة المرور غير صحيحة';input.value='';input.focus();}}
@@ -297,8 +310,8 @@ function renderDashboard(){
   const list=document.getElementById('dashboardProjects');
   list.innerHTML=db.projects.slice(0,8).map(p=>{
     const s=projectStats(p.id), ratio=p.value?Math.min(100,s.inSum/p.value*100):0;
-    return `<div class="project-card" onclick="openProjectDetails('${p.id}')">
-      <div class="project-row"><div><div class="project-name">${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')}</div></div>
+    return `<div class="project-card" style="border-inline-start-color:${projectColor(p)}" onclick="openProjectDetails('${p.id}')">
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')}</div></div>
       <div class="project-balance ${s.remaining>0?'':'green'}">${money(s.remaining)}</div></div>
       <div class="progress"><span style="width:${ratio}%"></span></div>
       <div class="project-meta">مقبوض ${money(s.inSum)} · ربح ${money(s.profit)}</div>
@@ -321,8 +334,8 @@ function renderProjects(){
   const arr=db.projects.filter(p=>(p.name+' '+(p.clientName||'')).toLowerCase().includes(q));
   el.innerHTML=arr.map(p=>{
     const s=projectStats(p.id);
-    return `<div class="panel">
-      <div class="project-row"><div><div class="project-name">${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · قيمة المشروع ${money(p.value)}</div></div>
+    return `<div class="panel" style="border-inline-start:5px solid ${projectColor(p)}">
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · قيمة المشروع ${money(p.value)}</div></div>
       <div><button class="ghost-btn" onclick="openProjectDetails('${p.id}')">فتح</button></div></div>
       <div class="cards" style="margin:14px 0 0;grid-template-columns:repeat(4,1fr)">
         <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
@@ -410,18 +423,29 @@ function initApp(){
   });
 }
 
+let selectedProjectColor=PROJECT_COLORS[0];
 function openProjectModal(){
+  selectedProjectColor=PROJECT_COLORS[db.projects.length%PROJECT_COLORS.length];
   openModal('إضافة مشروع',`<div class="form-grid">
     <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" placeholder="مثال: مصنع النور"></div>
     <div class="form-group"><label>اسم العميل</label><input id="fClientName" placeholder="اسم الشركة أو المصنع"></div>
     <div class="form-group"><label>قيمة المشروع</label><input id="fProjectValue" type="number" placeholder="0"></div>
     <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-  </div><div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fProjectNotes"></textarea></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>لون المشروع</label>
+    <div class="color-picker" id="colorPicker">${PROJECT_COLORS.map(c=>`<span class="color-dot${c===selectedProjectColor?' selected':''}" style="background:${c}" onclick="pickProjectColor('${c}',this)"></span>`).join('')}</div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fProjectNotes"></textarea></div>
   <div class="form-actions"><button class="primary" onclick="createProject()">حفظ المشروع</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`);
+}
+function pickProjectColor(c,el){
+  selectedProjectColor=c;
+  document.querySelectorAll('#colorPicker .color-dot').forEach(d=>d.classList.remove('selected'));
+  el.classList.add('selected');
 }
 function createProject(){
   const name=document.getElementById('fProjectName').value.trim(); if(!name)return toast('اكتب اسم المشروع');
-  db.projects.push({id:id(),name,clientName:document.getElementById('fClientName').value.trim(),value:+document.getElementById('fProjectValue').value||0,date:document.getElementById('fProjectDate').value,notes:document.getElementById('fProjectNotes').value});
+  db.projects.push({id:id(),name,clientName:document.getElementById('fClientName').value.trim(),value:+document.getElementById('fProjectValue').value||0,date:document.getElementById('fProjectDate').value,notes:document.getElementById('fProjectNotes').value,color:selectedProjectColor});
   closeModal();renderAll();toast('تم إضافة المشروع');
 }
 
@@ -495,7 +519,7 @@ function printProjectPdf(pid){
 
 function openProjectDetails(pid){
   const p=projectById(pid),s=projectStats(pid);
-  openModal(p.name,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
+  openModal(`<span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}`,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
     <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
     <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
     <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
