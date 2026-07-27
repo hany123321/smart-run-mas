@@ -53,6 +53,14 @@ button{cursor:pointer}
 .color-dot{width:26px;height:26px;border-radius:50%;display:inline-block;cursor:pointer;border:2px solid transparent}
 .color-dot.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--panel2)}
 .project-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:7px;flex-shrink:0;vertical-align:middle}
+.quote-item-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.quote-item-row input{flex:2}
+.quote-item-row input.qty,.quote-item-row input.price{flex:1}
+.quote-item-row .row-total{flex:1.2;font-family:'JetBrains Mono';direction:ltr;text-align:left;color:var(--muted);font-size:13px;white-space:nowrap}
+.quote-item-row button{flex:0 0 auto;background:transparent;color:var(--red);border:0;font-size:18px;padding:4px 8px}
+.quote-totals{display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.quote-totals .row{display:flex;justify-content:space-between;font-size:14px}
+.quote-totals .row.grand{font-weight:800;font-size:17px;color:var(--accent2)}
 .project-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .project-name{font-family:Tajawal;font-weight:800}
 .project-meta{font-size:12px;color:var(--muted);margin-top:4px}
@@ -123,6 +131,7 @@ textarea{min-height:80px;resize:vertical}
       <button class="nav-btn" data-page="suppliers">📦 الموردين</button>
       <button class="nav-btn" data-page="transactions">💰 كل الحركات</button>
       <button class="nav-btn" data-page="reports">📈 التقارير</button>
+      <button class="nav-btn" data-page="quotes">🧾 عرض سعر</button>
     </aside>
 
     <main class="content">
@@ -183,6 +192,11 @@ textarea{min-height:80px;resize:vertical}
         </div>
         <div class="panel"><div class="panel-title"><h3>ملخص المشاريع</h3></div><div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقبوض</th><th>التكاليف</th><th>الربح</th><th>المتبقي</th></tr></thead><tbody id="reportProjects"></tbody></table></div></div>
       </section>
+
+      <section class="page" id="page-quotes">
+        <div class="page-head"><div><h2>عروض الأسعار</h2><p>اعمل عرض سعر للعميل بالمكونات وعددها وسعرها + المصنعية</p></div><button class="primary" onclick="openQuoteModal()">+ عرض سعر جديد</button></div>
+        <div id="quotesList"></div>
+      </section>
     </main>
   </div>
 </div>
@@ -227,7 +241,7 @@ const firestore = firebase.firestore();
 // كل بيانات التطبيق بتتخزن في مستند واحد بيتزامن أوتوماتيك بين كل الأجهزة
 const DOC_REF = firestore.collection('engineer_accounts').doc('main');
 
-let db={projects:[], clients:[], suppliers:[], transactions:[]};
+let db={projects:[], clients:[], suppliers:[], transactions:[], quotes:[]};
 let currentTxType='payment';
 
 // ألوان مميزة لكل مشروع عشان تقدر تفرق بينهم بسرعة
@@ -272,6 +286,8 @@ const clientById=x=>db.clients.find(p=>p.id===x);
 const supplierById=x=>db.suppliers.find(p=>p.id===x);
 
 const PAGE_PASSWORD='31219851831';
+const COMPANY_NAME='SMART RUN';
+const COMPANY_PHONE='01023002943';
 function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
 function openModal(title,body){document.getElementById('modalTitle').innerHTML=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show')}
@@ -386,6 +402,134 @@ function renderReports(){
   }).join('')||'<tr><td colspan="5" class="empty">لا توجد مشاريع</td></tr>';
 }
 
+function quoteComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
+function quoteGrandTotal(q){return quoteComponentsTotal(q.items)+(+q.labor||0)}
+
+function renderQuotes(){
+  const el=document.getElementById('quotesList');
+  if(!el) return;
+  const arr=[...(db.quotes||[])].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(q=>`<div class="panel">
+    <div class="project-row"><div><div class="project-name">${esc(q.clientName||'عميل بدون اسم')}</div><div class="project-meta">${esc(q.title||'عرض سعر')} · ${q.date||''} · ${(q.items||[]).length} بند</div></div>
+    <div class="project-balance">${money(quoteGrandTotal(q))}</div></div>
+    <div class="form-actions" style="margin-top:12px">
+      <button class="ghost-btn" onclick="openQuoteModal('${q.id}')">تعديل</button>
+      <button class="ghost-btn" onclick="printQuotePdf('${q.id}')">📄 PDF / طباعة</button>
+      <button class="danger" onclick="deleteQuote('${q.id}')">حذف</button>
+    </div>
+  </div>`).join('')||'<div class="panel empty">لا توجد عروض أسعار بعد</div>';
+}
+
+let currentQuoteDraft=null;
+function openQuoteModal(qid=''){
+  const existing=qid?(db.quotes||[]).find(q=>q.id===qid):null;
+  currentQuoteDraft=existing?JSON.parse(JSON.stringify(existing)):{id:id(),clientName:'',title:'',date:new Date().toISOString().slice(0,10),items:[{name:'',qty:1,price:0}],labor:0,created:Date.now()};
+  openModal(existing?'تعديل عرض السعر':'عرض سعر جديد',quoteModalBody());
+}
+function quoteModalBody(){
+  return `<div class="small" style="margin-bottom:10px">🏢 ${COMPANY_NAME} · 📞 ${COMPANY_PHONE}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>اسم العميل</label><input id="qClientName" value="${esc(currentQuoteDraft.clientName)}" oninput="currentQuoteDraft.clientName=this.value"></div>
+    <div class="form-group"><label>عنوان العرض</label><input id="qTitle" value="${esc(currentQuoteDraft.title)}" oninput="currentQuoteDraft.title=this.value" placeholder="مثال: تركيب لوحة كهرباء"></div>
+    <div class="form-group"><label>التاريخ</label><input id="qDate" type="date" value="${esc(currentQuoteDraft.date)}" oninput="currentQuoteDraft.date=this.value"></div>
+  </div>
+  <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addQuoteRow()">+ إضافة بند</button></div>
+  <div class="table-wrap"><table><thead><tr><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="quoteRowsBody">${quoteRowsHtml()}</tbody></table></div>
+  <div class="form-grid" style="margin-top:14px">
+    <div class="form-group"><label>المصنعية</label><input id="qLabor" type="number" value="${currentQuoteDraft.labor}" oninput="currentQuoteDraft.labor=+this.value||0; updateQuoteTotalsUI()"></div>
+  </div>
+  <div class="cards" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
+    <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="qComponentsTotal">${fmt(quoteComponentsTotal(currentQuoteDraft.items))}</div></div>
+    <div class="card"><div class="label">المصنعية</div><div class="value" id="qLaborTotal">${fmt(currentQuoteDraft.labor)}</div></div>
+    <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="qGrandTotal">${fmt(quoteGrandTotal(currentQuoteDraft))}</div></div>
+  </div>
+  <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveQuote()">حفظ عرض السعر</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
+}
+function quoteRowsHtml(){
+  return currentQuoteDraft.items.map((it,idx)=>`<tr>
+    <td><input value="${esc(it.name)}" oninput="updateQuoteRow(${idx},'name',this.value)" placeholder="اسم المكون"></td>
+    <td><input type="number" value="${it.qty}" style="width:70px" oninput="updateQuoteRow(${idx},'qty',this.value)"></td>
+    <td><input type="number" value="${it.price}" style="width:95px" oninput="updateQuoteRow(${idx},'price',this.value)"></td>
+    <td class="amount" id="qRowTotal${idx}">${fmt((+it.qty||0)*(+it.price||0))}</td>
+    <td><button class="danger" onclick="removeQuoteRow(${idx})">حذف</button></td>
+  </tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
+}
+function addQuoteRow(){
+  currentQuoteDraft.items.push({name:'',qty:1,price:0});
+  document.getElementById('quoteRowsBody').innerHTML=quoteRowsHtml();
+  updateQuoteTotalsUI();
+}
+function removeQuoteRow(idx){
+  currentQuoteDraft.items.splice(idx,1);
+  document.getElementById('quoteRowsBody').innerHTML=quoteRowsHtml();
+  updateQuoteTotalsUI();
+}
+function updateQuoteRow(idx,field,value){
+  currentQuoteDraft.items[idx][field]=field==='name'?value:(+value||0);
+  const rowEl=document.getElementById('qRowTotal'+idx);
+  if(rowEl) rowEl.textContent=fmt((+currentQuoteDraft.items[idx].qty||0)*(+currentQuoteDraft.items[idx].price||0));
+  updateQuoteTotalsUI();
+}
+function updateQuoteTotalsUI(){
+  const compEl=document.getElementById('qComponentsTotal');
+  const laborEl=document.getElementById('qLaborTotal');
+  const grandEl=document.getElementById('qGrandTotal');
+  if(compEl) compEl.textContent=fmt(quoteComponentsTotal(currentQuoteDraft.items));
+  if(laborEl) laborEl.textContent=fmt(currentQuoteDraft.labor||0);
+  if(grandEl) grandEl.textContent=fmt(quoteGrandTotal(currentQuoteDraft));
+}
+function saveQuote(){
+  if(!db.quotes) db.quotes=[];
+  const idx=db.quotes.findIndex(q=>q.id===currentQuoteDraft.id);
+  if(idx>=0) db.quotes[idx]=currentQuoteDraft; else db.quotes.push(currentQuoteDraft);
+  closeModal();
+  renderAll();
+  toast('تم حفظ عرض السعر');
+}
+function deleteQuote(qid){
+  if(!confirm('حذف عرض السعر ده؟'))return;
+  db.quotes=(db.quotes||[]).filter(q=>q.id!==qid);
+  renderAll();
+  toast('تم الحذف');
+}
+function printQuotePdf(qid){
+  const q=(db.quotes||[]).find(x=>x.id===qid); if(!q)return;
+  const componentsTotal=quoteComponentsTotal(q.items);
+  const grand=quoteGrandTotal(q);
+  const rows=(q.items||[]).map(it=>`<tr><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">لا توجد بنود</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>عرض سعر - ${esc(q.title||q.clientName||'')}</title><style>
+  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #d58a45;padding-bottom:14px;margin-bottom:20px}
+  .company{font-size:22px;font-weight:900;color:#d58a45}
+  .company-phone{font-size:13px;color:#555;margin-top:4px}
+  h2{margin:0 0 4px}
+  .meta{color:#555;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px;border:1px solid #ccc;text-align:right}
+  th{background:#f7f7f7}
+  .amount{text-align:left}
+  .totals{margin-top:16px;width:300px;margin-inline-start:auto}
+  .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+  .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid #111;padding-top:10px;margin-top:6px}
+  </style></head><body>
+  <div class="header">
+    <div><div class="company">${COMPANY_NAME}</div><div class="company-phone">📞 ${COMPANY_PHONE}</div></div>
+    <div style="text-align:left"><h2>عرض سعر</h2><div class="meta">${esc(q.date||'')}</div></div>
+  </div>
+  <div class="meta"><strong>العميل:</strong> ${esc(q.clientName||'-')}${q.title?' · <strong>العرض:</strong> '+esc(q.title):''}</div>
+  <table><thead><tr><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totals">
+    <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
+    <div><span>المصنعية</span><span>${fmt(q.labor||0)} ج.م</span></div>
+    <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
+  </div>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
 // renderUI فقط بيحدث الشاشة، من غير ما يحفظ (يستخدم عند وصول تحديث من جهاز تاني)
 function renderUI(){
   renderDashboard();
@@ -394,6 +538,7 @@ function renderUI(){
   renderContacts('supplier');
   renderTransactions();
   renderReports();
+  renderQuotes();
 }
 // renderAll بتحدث الشاشة وتحفظ في السحابة (تستخدم بعد أي تعديل محلي)
 function renderAll(){
@@ -406,7 +551,8 @@ function initApp(){
   DOC_REF.get().then(doc=>{
     if(doc.exists){
       const data=doc.data();
-      db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[]};
+      db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[]};
+      if(!db.quotes) db.quotes=[];
     }
     renderUI();
     setSyncStatus('ok');
@@ -415,7 +561,8 @@ function initApp(){
       if(suppressNextSnapshot){ suppressNextSnapshot=false; return; }
       if(snap.exists){
         const data=snap.data();
-        db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[]};
+        db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[]};
+        if(!db.quotes) db.quotes=[];
         renderUI();
       }
     },err=>{ console.error('Firestore listen error',err); setSyncStatus('err'); });
@@ -696,7 +843,7 @@ document.getElementById('menuToggle').addEventListener('click',()=>{
   document.querySelector('.sidebar').classList.toggle('open');
 });
 document.getElementById('projectSearch').addEventListener('input',renderProjects);
-document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[]};renderAll();toast('تم مسح البيانات')}})
+document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[],quotes:[]};renderAll();toast('تم مسح البيانات')}})
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='engineer-accounts-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم تصدير النسخة الاحتياطية');
