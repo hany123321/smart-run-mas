@@ -525,11 +525,37 @@ function openProjectDetails(pid){
     <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
     <div class="card"><div class="label">المتبقي</div><div class="value blue">${fmt(s.remaining)}</div></div>
   </div>
-  <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
+  <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
   ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
     const invoiceHtml=t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">عرض الفاتورة</button>`:'<span class="badge">بدون فاتورة</span>';
     return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml}</div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</div></div></div>`;
   }).join('')||'<div class="empty">لا توجد حركات</div>'}</div>`);
+}
+function openProjectEdit(pid){
+  const p=projectById(pid);
+  selectedProjectColor=projectColor(p);
+  openModal('تعديل المشروع',`<div class="form-grid">
+    <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" value="${esc(p.name)}"></div>
+    <div class="form-group"><label>اسم العميل</label><input id="fClientName" value="${esc(p.clientName||'')}"></div>
+    <div class="form-group"><label>قيمة المشروع</label><input id="fProjectValue" type="number" value="${p.value||0}"></div>
+    <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${esc(p.date||'')}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>لون المشروع</label>
+    <div class="color-picker" id="colorPicker">${PROJECT_COLORS.map(c=>`<span class="color-dot${c===selectedProjectColor?' selected':''}" style="background:${c}" onclick="pickProjectColor('${c}',this)"></span>`).join('')}</div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fProjectNotes">${esc(p.notes||'')}</textarea></div>
+  <div class="form-actions"><button class="primary" onclick="saveProjectEdit('${pid}')">حفظ التعديل</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function saveProjectEdit(pid){
+  const p=projectById(pid); if(!p)return;
+  const name=document.getElementById('fProjectName').value.trim(); if(!name)return toast('اكتب اسم المشروع');
+  p.name=name;
+  p.clientName=document.getElementById('fClientName').value.trim();
+  p.value=+document.getElementById('fProjectValue').value||0;
+  p.date=document.getElementById('fProjectDate').value;
+  p.notes=document.getElementById('fProjectNotes').value;
+  p.color=selectedProjectColor;
+  closeModal();renderAll();toast('تم حفظ التعديل');
 }
 function openProjectDelete(pid){
   openModal('حذف المشروع',`<div class="form-group"><label>أدخل كلمة المرور لحذف المشروع</label><input id="deleteProjectPassword" type="password" placeholder="كلمة المرور"></div><div class="form-actions"><button class="danger" onclick="confirmProjectDelete('${pid}')">حذف</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`);
