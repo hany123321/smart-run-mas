@@ -495,6 +495,47 @@ async function createTransaction(){
 }
 function deleteTx(txid){if(!confirm('حذف الحركة؟'))return;db.transactions=db.transactions.filter(x=>x.id!==txid);renderAll();toast('تم الحذف')}
 
+// فئات مصروفات جاهزة عشان تسجل بسرعة من غير ما تكتب كل مرة
+const EXPENSE_CATEGORIES=[
+  {label:'موصلات وتوصيلات',type:'purchase'},
+  {label:'أكل عمال',type:'expense'},
+  {label:'مصنعية مساعدين',type:'labor'},
+  {label:'مواصلات',type:'expense'},
+  {label:'أدوات وعدد',type:'purchase'},
+  {label:'أخرى',type:'expense'}
+];
+let quickExpenseCategory=EXPENSE_CATEGORIES[0];
+function openQuickExpenseModal(pid){
+  quickExpenseCategory=EXPENSE_CATEGORIES[0];
+  openModal('إضافة مصروف مشروع',`<div class="tx-type" id="expenseCatPicker">${EXPENSE_CATEGORIES.map((c,i)=>`<button class="${i===0?'active':''}" onclick="pickExpenseCategory(${i},this)">${c.label}</button>`).join('')}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>المبلغ</label><input id="fQxAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>البيان (اختياري)</label><input id="fQxDesc" placeholder="تفاصيل إضافية"></div>
+    <div class="form-group"><label>اسم الطرف</label><input id="fQxParty" placeholder="مورد / فني / مساعد"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fQxDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>صورة الفاتورة</label><input id="fQxInvoice" type="file" accept="image/*"></div>
+  </div><div class="form-actions"><button class="primary" onclick="saveQuickExpense('${pid}')">إضافة المصروف</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function pickExpenseCategory(i,btn){
+  quickExpenseCategory=EXPENSE_CATEGORIES[i];
+  document.querySelectorAll('#expenseCatPicker button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+async function saveQuickExpense(pid){
+  const amount=+document.getElementById('fQxAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const invoiceInput=document.getElementById('fQxInvoice');
+  let invoiceImage='',invoiceName='';
+  if(invoiceInput?.files?.[0]){
+    invoiceName=invoiceInput.files[0].name;
+    invoiceImage=await readFileAsDataURL(invoiceInput.files[0]);
+  }
+  const desc=document.getElementById('fQxDesc').value.trim();
+  db.transactions.push({id:id(),type:quickExpenseCategory.type,amount,projectId:pid,desc:desc||quickExpenseCategory.label,partyName:document.getElementById('fQxParty').value.trim(),date:document.getElementById('fQxDate').value,created:Date.now(),invoiceImage,invoiceName});
+  renderAll();
+  openProjectDetails(pid);
+  toast('تمت إضافة المصروف');
+}
+
 function openTxEdit(txid){
   const t=db.transactions.find(x=>x.id===txid); if(!t)return;
   currentTxType=t.type;
@@ -573,7 +614,7 @@ function openProjectDetails(pid){
   <div class="panel"><div class="panel-title"><h3>زيادات الشغل</h3><button class="ghost-btn" onclick="openAdditionModal('${pid}')">+ زيادة شغل</button></div>
   ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${money(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
   </div>
-  <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
+  <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="openQuickExpenseModal('${pid}')">+ مصروف مشروع</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
   ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
     const invoiceHtml=t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">عرض الفاتورة</button>`:'<span class="badge">بدون فاتورة</span>';
     return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml} <button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}');openProjectDetails('${pid}')">حذف</button></div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</div></div></div>`;
