@@ -313,7 +313,7 @@ function renderDashboard(){
   list.innerHTML=db.projects.slice(0,8).map(p=>{
     const s=projectStats(p.id), ratio=p.value?Math.min(100,s.inSum/p.value*100):0;
     return `<div class="project-card" style="border-inline-start-color:${projectColor(p)}" onclick="openProjectDetails('${p.id}')">
-      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')}</div></div>
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(p.value)}</div></div>
       <div class="project-balance ${s.remaining>0?'':'green'}">${money(s.remaining)}</div></div>
       <div class="progress"><span style="width:${ratio}%"></span></div>
       <div class="project-meta">مقبوض ${money(s.inSum)} · ربح ${money(s.profit)}</div>
@@ -337,7 +337,7 @@ function renderProjects(){
   el.innerHTML=arr.map(p=>{
     const s=projectStats(p.id);
     return `<div class="panel" style="border-inline-start:5px solid ${projectColor(p)}">
-      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · قيمة المشروع ${money(p.value)}</div></div>
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(p.value)}</div></div>
       <div><button class="ghost-btn" onclick="openProjectDetails('${p.id}')">فتح</button></div></div>
       <div class="cards" style="margin:14px 0 0;grid-template-columns:repeat(4,1fr)">
         <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
@@ -431,7 +431,7 @@ function openProjectModal(){
   openModal('إضافة مشروع',`<div class="form-grid">
     <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" placeholder="مثال: مصنع النور"></div>
     <div class="form-group"><label>اسم العميل</label><input id="fClientName" placeholder="اسم الشركة أو المصنع"></div>
-    <div class="form-group"><label>قيمة المشروع</label><input id="fProjectValue" type="number" placeholder="0"></div>
+    <div class="form-group"><label>القيمة المتفق عليها</label><input id="fProjectValue" type="number" placeholder="0"></div>
     <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
   </div>
   <div class="form-group" style="margin-top:10px"><label>لون المشروع</label>
@@ -513,7 +513,7 @@ function printProjectPdf(pid){
       </tr>
     `).join('')||'<tr><td colspan="5" class="empty">لا توجد حركات</td></tr>';
   const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>قيمة المشروع:</strong> ${money(p.value)}</div><div><strong>المتبقي:</strong> ${money(s.remaining)}</div></div><div class="summary"><div><strong>المقبوض:</strong> ${money(s.inSum)}</div><div><strong>التكاليف:</strong> ${money(s.costs)}</div></div><div class="summary"><div><strong>الربح:</strong> ${money(s.profit)}</div><div></div></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>القيمة المتفق عليها:</strong> ${money(p.value)}</div><div><strong>المتبقي:</strong> ${money(s.remaining)}</div></div><div class="summary"><div><strong>المقبوض:</strong> ${money(s.inSum)}</div><div><strong>التكاليف:</strong> ${money(s.costs)}</div></div><div class="summary"><div><strong>الربح:</strong> ${money(s.profit)}</div><div></div></div><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   win.document.close();
   win.focus();
   win.print();
@@ -522,6 +522,7 @@ function printProjectPdf(pid){
 function openProjectDetails(pid){
   const p=projectById(pid),s=projectStats(pid);
   openModal(`<span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}`,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
+    <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${fmt(p.value)}</div></div>
     <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
     <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
     <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
@@ -539,7 +540,7 @@ function openProjectEdit(pid){
   openModal('تعديل المشروع',`<div class="form-grid">
     <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" value="${esc(p.name)}"></div>
     <div class="form-group"><label>اسم العميل</label><input id="fClientName" value="${esc(p.clientName||'')}"></div>
-    <div class="form-group"><label>قيمة المشروع</label><input id="fProjectValue" type="number" value="${p.value||0}"></div>
+    <div class="form-group"><label>القيمة المتفق عليها</label><input id="fProjectValue" type="number" value="${p.value||0}"></div>
     <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${esc(p.date||'')}"></div>
   </div>
   <div class="form-group" style="margin-top:10px"><label>لون المشروع</label>
