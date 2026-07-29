@@ -628,9 +628,13 @@ function printQuotePdf(qid){
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>عرض سعر - ${esc(q.title||q.clientName||'')}</title><style>
   body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
-  .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #d58a45;padding-bottom:14px;margin-bottom:20px}
+  .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #d58a45;padding-bottom:14px;margin-bottom:18px}
   .company-logo{width:92px;height:92px;object-fit:contain;border-radius:50%}
+  .brand-text{font-size:28px;font-weight:900;letter-spacing:1px;color:#3a3a3a;text-shadow:0 1px 0 #fff,0 2px 3px rgba(0,0,0,.15)}
+  .brand-text .brand-run{color:#2f7fd6;margin-inline-start:4px}
   h2{margin:0 0 4px}
+  .quote-title-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .quote-title-row h2{color:#d58a45}
   .meta{color:#555;font-size:13px;margin-bottom:16px}
   table{width:100%;border-collapse:collapse;margin-top:12px}
   th,td{padding:10px;border:1px solid #ccc;text-align:right}
@@ -649,8 +653,12 @@ function printQuotePdf(qid){
   @media print{.portfolio-link-wrap{display:none}}
   </style></head><body>
   <div class="header">
+    <div class="brand-text">SMART<span class="brand-run">RUN</span></div>
     <img class="company-logo" src="${COMPANY_LOGO}" alt="${COMPANY_NAME}">
-    <div style="text-align:left"><h2>عرض سعر</h2><div class="meta">${esc(q.date||'')}</div></div>
+  </div>
+  <div class="quote-title-row">
+    <h2>عرض سعر</h2>
+    <div class="meta" style="margin:0">${esc(q.date||'')}</div>
   </div>
   <div class="meta"><strong>العميل:</strong> ${esc(q.clientName||'-')}${q.title?' · <strong>العرض:</strong> '+esc(q.title):''}</div>
   <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
