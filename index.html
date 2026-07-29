@@ -638,6 +638,7 @@ function printQuotePdf(qid){
   .totals{margin-top:16px;width:300px;margin-inline-start:auto}
   .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
   .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid #111;padding-top:10px;margin-top:6px}
+  .validity-note{margin-top:16px;text-align:center;color:#a66a2e;background:#fdf3e8;border:1px solid #edd3ae;border-radius:10px;padding:10px;font-size:13px;font-weight:700}
   .quote-footer{margin-top:50px;padding-top:16px;border-top:2px solid #d58a45;display:flex;justify-content:center;gap:36px;flex-wrap:wrap;page-break-inside:avoid;break-inside:avoid}
   .quote-footer .item{display:flex;align-items:center;gap:8px;font-size:14px;color:#333;font-weight:700}
   .quote-footer .icon{font-size:18px}
@@ -657,6 +658,7 @@ function printQuotePdf(qid){
     <div><span>تكلفة العمل</span><span>${fmt(q.labor||0)} ج.م</span></div>
     <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
   </div>
+  <div class="validity-note">⏳ العرض ساري 15 يوم من تاريخ العرض</div>
   <div class="portfolio-link-wrap">
     <a class="portfolio-link-btn" href="${portfolioPublicUrl()}" target="_blank">🖼️ شوف سابقة أعمالنا</a>
   </div>
