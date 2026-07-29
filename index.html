@@ -209,7 +209,7 @@ textarea{min-height:80px;resize:vertical}
       </section>
 
       <section class="page" id="page-quotes">
-        <div class="page-head"><div><h2>عروض الأسعار</h2><p>اعمل عرض سعر للعميل بالمكونات وعددها وسعرها + المصنعية</p></div><button class="primary" onclick="openQuoteModal()">+ عرض سعر جديد</button></div>
+        <div class="page-head"><div><h2>عروض الأسعار</h2><p>اعمل عرض سعر للعميل بالمكونات وعددها وسعرها + تكلفة العمل</p></div><button class="primary" onclick="openQuoteModal()">+ عرض سعر جديد</button></div>
         <div id="quotesList"></div>
       </section>
 
@@ -563,11 +563,11 @@ function quoteModalBody(){
   <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addQuoteRow()">+ إضافة بند</button></div>
   <div class="table-wrap"><table><thead><tr><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="quoteRowsBody">${quoteRowsHtml()}</tbody></table></div>
   <div class="form-grid" style="margin-top:14px">
-    <div class="form-group"><label>المصنعية</label><input id="qLabor" type="number" value="${currentQuoteDraft.labor}" oninput="currentQuoteDraft.labor=+this.value||0; updateQuoteTotalsUI()"></div>
+    <div class="form-group"><label>تكلفة العمل</label><input id="qLabor" type="number" value="${currentQuoteDraft.labor}" oninput="currentQuoteDraft.labor=+this.value||0; updateQuoteTotalsUI()"></div>
   </div>
   <div class="cards" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
     <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="qComponentsTotal">${fmt(quoteComponentsTotal(currentQuoteDraft.items))}</div></div>
-    <div class="card"><div class="label">المصنعية</div><div class="value" id="qLaborTotal">${fmt(currentQuoteDraft.labor)}</div></div>
+    <div class="card"><div class="label">تكلفة العمل</div><div class="value" id="qLaborTotal">${fmt(currentQuoteDraft.labor)}</div></div>
     <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="qGrandTotal">${fmt(quoteGrandTotal(currentQuoteDraft))}</div></div>
   </div>
   <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveQuote()">حفظ عرض السعر</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
@@ -654,7 +654,7 @@ function printQuotePdf(qid){
   <table><thead><tr><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="totals">
     <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
-    <div><span>المصنعية</span><span>${fmt(q.labor||0)} ج.م</span></div>
+    <div><span>تكلفة العمل</span><span>${fmt(q.labor||0)} ج.م</span></div>
     <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
   </div>
   <div class="portfolio-link-wrap">
