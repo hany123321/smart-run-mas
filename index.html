@@ -152,6 +152,7 @@ textarea{min-height:80px;resize:vertical}
       <button class="nav-btn" data-page="reports">📈 التقارير</button>
       <button class="nav-btn" data-page="quotes">🧾 عرض سعر</button>
       <button class="nav-btn" data-page="invoices">🧾 الفواتير</button>
+      <button class="nav-btn" data-page="extinvoices">🧾 فاتورة خارجية</button>
       <button class="nav-btn" data-page="portfolio">🖼️ سابقة أعمال</button>
     </aside>
 
@@ -224,6 +225,11 @@ textarea{min-height:80px;resize:vertical}
         <div id="invoicesList"></div>
       </section>
 
+      <section class="page" id="page-extinvoices">
+        <div class="page-head"><div><h2>فاتورة خارجية</h2><p>فاتورة بسيطة من غير شعار أو بيانات شركة، بلون مختلف كل مرة</p></div><button class="primary" onclick="openExtInvoiceModal()">+ فاتورة خارجية جديدة</button></div>
+        <div id="extInvoicesList"></div>
+      </section>
+
       <section class="page" id="page-portfolio">
         <div class="page-head"><div><h2>سابقة أعمال</h2><p>ارفع صور شغلك، والعميل يقدر يشوفها من رابط مباشر (من غير كلمة مرور)</p></div><button class="primary" onclick="triggerPortfolioUpload()">+ إضافة صور</button></div>
         <input type="file" id="portfolioFileInput" accept="image/*" multiple style="display:none">
@@ -283,7 +289,7 @@ const firestore = firebase.firestore();
 // كل بيانات التطبيق بتتخزن في مستند واحد بيتزامن أوتوماتيك بين كل الأجهزة
 const DOC_REF = firestore.collection('engineer_accounts').doc('main');
 
-let db={projects:[], clients:[], suppliers:[], transactions:[], quotes:[], portfolio:[], invoices:[], nextInvoiceNumber:1};
+let db={projects:[], clients:[], suppliers:[], transactions:[], quotes:[], portfolio:[], invoices:[], nextInvoiceNumber:1, extInvoices:[]};
 let currentTxType='payment';
 
 // ألوان مميزة لكل مشروع عشان تقدر تفرق بينهم بسرعة
@@ -620,7 +626,140 @@ function printInvoicePdf(invId){
   win.print();
 }
 
-// ===== سابقة الأعمال (Portfolio Gallery) =====
+// ===== فاتورة خارجية (من غير أي بيانات شركة، ولون مختلف كل مرة) =====
+function extInvoiceComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
+function extInvoiceGrandTotal(inv){return extInvoiceComponentsTotal(inv.items)+(+inv.labor||0)}
+
+function renderExtInvoices(){
+  const el=document.getElementById('extInvoicesList');
+  if(!el) return;
+  const arr=[...(db.extInvoices||[])].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(inv=>`<div class="panel" style="border-inline-start:5px solid ${inv.color||PROJECT_COLORS[0]}">
+    <div class="project-row"><div><div class="project-name">${esc(inv.clientName||'عميل بدون اسم')}</div><div class="project-meta">${esc(inv.title||'فاتورة خارجية')} · ${inv.date||''} · ${(inv.items||[]).length} بند</div></div>
+    <div class="project-balance">${money(extInvoiceGrandTotal(inv))}</div></div>
+    <div class="form-actions" style="margin-top:12px">
+      <button class="ghost-btn" onclick="openExtInvoiceModal('${inv.id}')">تعديل</button>
+      <button class="ghost-btn" onclick="printExtInvoicePdf('${inv.id}')">📄 PDF / طباعة</button>
+      <button class="danger" onclick="deleteExtInvoice('${inv.id}')">حذف</button>
+    </div>
+  </div>`).join('')||'<div class="panel empty">لا توجد فواتير خارجية بعد</div>';
+}
+
+let currentExtInvoiceDraft=null;
+function openExtInvoiceModal(invId=''){
+  const existing=invId?(db.extInvoices||[]).find(i=>i.id===invId):null;
+  if(existing){
+    currentExtInvoiceDraft=JSON.parse(JSON.stringify(existing));
+  }else{
+    // كل فاتورة خارجية جديدة بتاخد لون مختلف عن اللي قبلها
+    const color=PROJECT_COLORS[(db.extInvoices||[]).length%PROJECT_COLORS.length];
+    currentExtInvoiceDraft={id:id(),clientName:'',title:'',date:new Date().toISOString().slice(0,10),items:[{name:'',qty:1,price:0}],labor:0,color,created:Date.now()};
+  }
+  openModal(existing?'تعديل فاتورة خارجية':'فاتورة خارجية جديدة',extInvoiceModalBody());
+}
+function extInvoiceModalBody(){
+  return `<div class="small" style="margin-bottom:10px;display:flex;align-items:center;gap:8px"><span class="project-dot" style="background:${currentExtInvoiceDraft.color}"></span>فاتورة خارجية (من غير بيانات شركة)</div>
+  <div class="form-grid">
+    <div class="form-group"><label>اسم العميل</label><input id="eiClientName" value="${esc(currentExtInvoiceDraft.clientName)}" oninput="currentExtInvoiceDraft.clientName=this.value"></div>
+    <div class="form-group"><label>عنوان الفاتورة</label><input id="eiTitle" value="${esc(currentExtInvoiceDraft.title)}" oninput="currentExtInvoiceDraft.title=this.value" placeholder="مثال: تركيب لوحة كهرباء"></div>
+    <div class="form-group"><label>التاريخ</label><input id="eiDate" type="date" value="${esc(currentExtInvoiceDraft.date)}" oninput="currentExtInvoiceDraft.date=this.value"></div>
+  </div>
+  <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addExtInvoiceRow()">+ إضافة بند</button></div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="extInvoiceRowsBody">${extInvoiceRowsHtml()}</tbody></table></div>
+  <div class="form-grid" style="margin-top:14px">
+    <div class="form-group"><label>تكلفة العمل</label><input id="eiLabor" type="number" value="${currentExtInvoiceDraft.labor}" oninput="currentExtInvoiceDraft.labor=+this.value||0; updateExtInvoiceTotalsUI()"></div>
+  </div>
+  <div class="cards" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
+    <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="eiComponentsTotal">${fmt(extInvoiceComponentsTotal(currentExtInvoiceDraft.items))}</div></div>
+    <div class="card"><div class="label">تكلفة العمل</div><div class="value" id="eiLaborTotal">${fmt(currentExtInvoiceDraft.labor)}</div></div>
+    <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="eiGrandTotal">${fmt(extInvoiceGrandTotal(currentExtInvoiceDraft))}</div></div>
+  </div>
+  <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveExtInvoice()">حفظ الفاتورة</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
+}
+function extInvoiceRowsHtml(){
+  return currentExtInvoiceDraft.items.map((it,idx)=>`<tr>
+    <td class="small">${idx+1}</td>
+    <td><input value="${esc(it.name)}" oninput="updateExtInvoiceRow(${idx},'name',this.value)" placeholder="اسم المكون"></td>
+    <td><input type="number" value="${it.qty}" style="width:70px" oninput="updateExtInvoiceRow(${idx},'qty',this.value)"></td>
+    <td><input type="number" value="${it.price}" style="width:95px" oninput="updateExtInvoiceRow(${idx},'price',this.value)"></td>
+    <td class="amount" id="eiRowTotal${idx}">${fmt((+it.qty||0)*(+it.price||0))}</td>
+    <td><button class="danger" onclick="removeExtInvoiceRow(${idx})">حذف</button></td>
+  </tr>`).join('')||'<tr><td colspan="6" class="empty">لا توجد بنود</td></tr>';
+}
+function addExtInvoiceRow(){
+  currentExtInvoiceDraft.items.push({name:'',qty:1,price:0});
+  document.getElementById('extInvoiceRowsBody').innerHTML=extInvoiceRowsHtml();
+  updateExtInvoiceTotalsUI();
+}
+function removeExtInvoiceRow(idx){
+  currentExtInvoiceDraft.items.splice(idx,1);
+  document.getElementById('extInvoiceRowsBody').innerHTML=extInvoiceRowsHtml();
+  updateExtInvoiceTotalsUI();
+}
+function updateExtInvoiceRow(idx,field,value){
+  currentExtInvoiceDraft.items[idx][field]=field==='name'?value:(+value||0);
+  const rowEl=document.getElementById('eiRowTotal'+idx);
+  if(rowEl) rowEl.textContent=fmt((+currentExtInvoiceDraft.items[idx].qty||0)*(+currentExtInvoiceDraft.items[idx].price||0));
+  updateExtInvoiceTotalsUI();
+}
+function updateExtInvoiceTotalsUI(){
+  const compEl=document.getElementById('eiComponentsTotal');
+  const laborEl=document.getElementById('eiLaborTotal');
+  const grandEl=document.getElementById('eiGrandTotal');
+  if(compEl) compEl.textContent=fmt(extInvoiceComponentsTotal(currentExtInvoiceDraft.items));
+  if(laborEl) laborEl.textContent=fmt(currentExtInvoiceDraft.labor||0);
+  if(grandEl) grandEl.textContent=fmt(extInvoiceGrandTotal(currentExtInvoiceDraft));
+}
+function saveExtInvoice(){
+  if(!db.extInvoices) db.extInvoices=[];
+  const idx=db.extInvoices.findIndex(i=>i.id===currentExtInvoiceDraft.id);
+  if(idx>=0) db.extInvoices[idx]=currentExtInvoiceDraft; else db.extInvoices.push(currentExtInvoiceDraft);
+  closeModal();
+  renderAll();
+  toast('تم حفظ الفاتورة الخارجية');
+}
+function deleteExtInvoice(invId){
+  if(!confirm('حذف الفاتورة الخارجية دي؟'))return;
+  db.extInvoices=(db.extInvoices||[]).filter(i=>i.id!==invId);
+  renderAll();
+  toast('تم الحذف');
+}
+function printExtInvoicePdf(invId){
+  const inv=(db.extInvoices||[]).find(x=>x.id===invId); if(!inv)return;
+  const componentsTotal=extInvoiceComponentsTotal(inv.items);
+  const grand=extInvoiceGrandTotal(inv);
+  const color=inv.color||PROJECT_COLORS[0];
+  const rows=(inv.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>فاتورة - ${esc(inv.clientName||'')}</title><style>
+  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
+  .header{border-bottom:3px solid ${color};padding-bottom:14px;margin-bottom:20px}
+  h2{margin:0 0 4px;color:${color}}
+  .meta{color:#555;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px;border:1px solid #ccc;text-align:right}
+  th{background:#f7f7f7}
+  .amount{text-align:left}
+  .totals{margin-top:16px;width:300px;margin-inline-start:auto}
+  .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+  .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid ${color};padding-top:10px;margin-top:6px;color:${color}}
+  </style></head><body>
+  <div class="header">
+    <h2>فاتورة</h2>
+    <div class="meta">${esc(inv.date||'')}</div>
+  </div>
+  <div class="meta"><strong>العميل:</strong> ${esc(inv.clientName||'-')}${inv.title?' · <strong>الفاتورة:</strong> '+esc(inv.title):''}</div>
+  <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totals">
+    <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
+    <div><span>تكلفة العمل</span><span>${fmt(inv.labor||0)} ج.م</span></div>
+    <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
+  </div>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
 function portfolioPublicUrl(){
   return location.origin+location.pathname+'?portfolio=1';
 }
@@ -872,6 +1011,7 @@ function renderUI(){
   renderReports();
   renderQuotes();
   renderInvoices();
+  renderExtInvoices();
   renderPortfolio();
 }
 // renderAll بتحدث الشاشة وتحفظ في السحابة (تستخدم بعد أي تعديل محلي)
@@ -885,7 +1025,7 @@ function initApp(){
   DOC_REF.get().then(doc=>{
     if(doc.exists){
       const data=doc.data();
-      db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1};
+      db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1,extInvoices:[]};
       if(!db.quotes) db.quotes=[];
     }
     renderUI();
@@ -895,7 +1035,7 @@ function initApp(){
       if(suppressNextSnapshot){ suppressNextSnapshot=false; return; }
       if(snap.exists){
         const data=snap.data();
-        db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1};
+        db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1,extInvoices:[]};
         if(!db.quotes) db.quotes=[];
         renderUI();
       }
@@ -1177,7 +1317,7 @@ document.getElementById('menuToggle').addEventListener('click',()=>{
   document.querySelector('.sidebar').classList.toggle('open');
 });
 document.getElementById('projectSearch').addEventListener('input',renderProjects);
-document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1};renderAll();toast('تم مسح البيانات')}})
+document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1,extInvoices:[]};renderAll();toast('تم مسح البيانات')}})
 document.getElementById('exportBtn').addEventListener('click',()=>{
   const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='engineer-accounts-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم تصدير النسخة الاحتياطية');
