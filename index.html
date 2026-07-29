@@ -107,19 +107,24 @@ textarea{min-height:80px;resize:vertical}
 .sync-dot.ok{background:var(--green)}
 .sync-dot.err{background:var(--red)}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
-.gallery-item{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--panel2);aspect-ratio:1/1}
+.gallery-item{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column}
+.gallery-item .gallery-img-wrap{position:relative;aspect-ratio:1/1}
 .gallery-item img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
 .gallery-item .gallery-del{position:absolute;top:6px;left:6px;background:rgba(20,20,20,.75);color:var(--red);border:0;border-radius:8px;padding:4px 8px;font-size:11px}
+.gallery-caption{border:0;border-top:1px solid var(--line);border-radius:0;background:var(--panel);font-size:12px;padding:8px 10px}
 .public-gallery{min-height:100vh;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;padding:24px}
 .public-gallery .pg-header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
 .public-gallery .pg-logo{width:64px;height:64px;border-radius:50%;object-fit:contain}
 .public-gallery h1{font-family:Tajawal;margin:0;font-size:22px}
 .public-gallery .pg-sub{color:var(--muted);font-size:13px;margin-top:4px}
 .public-gallery .pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
-.public-gallery .pg-grid img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:1px solid var(--line);cursor:pointer}
+.public-gallery .pg-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.public-gallery .pg-grid img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;cursor:pointer}
+.public-gallery .pg-caption{padding:9px 11px;font-size:13px;color:var(--text);line-height:1.5}
 .pg-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
 .pg-lightbox.show{display:flex}
-.pg-lightbox img{max-width:100%;max-height:100%;border-radius:10px}
+.pg-lightbox img{max-width:100%;max-height:80vh;border-radius:10px;display:block;margin:auto}
+.pg-lightbox-caption{color:#fff;text-align:center;margin-top:12px;font-size:15px;max-width:600px}
 @media(max-width:850px){.layout{grid-template-columns:1fr}.menu-toggle{display:inline-flex}.sidebar{position:static;display:none;overflow:auto;gap:5px}.sidebar.open{display:flex}.nav-title{display:none}.nav-btn{min-width:max-content;margin:0}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
 @media(max-width:520px){.app{padding:12px}.brand{font-size:20px}.cards{gap:8px}.card{padding:12px}.card .value{font-size:19px}.form-grid{grid-template-columns:1fr}.tx-type{grid-template-columns:repeat(3,1fr)}.page-head{align-items:flex-start;flex-direction:column}}
 @media(max-width:420px){.topbar{flex-direction:column;align-items:flex-start}.top-actions{width:100%;justify-content:stretch;flex-wrap:wrap}.top-actions button{flex:1 1 100%;min-width:0}.sidebar{position:static;display:none}.sidebar.open{display:block}.nav-btn{width:100%;text-align:right;padding:12px}.cards{grid-template-columns:1fr}.project-row{flex-direction:column;align-items:flex-start}.project-row > div:last-child{margin-top:10px}.panel-title{flex-direction:column;align-items:flex-start;gap:10px}.table-wrap{overflow-x:auto}.table-wrap table{min-width:auto}.th,td{font-size:12px}.project-card{padding:12px}.modal-box{padding:16px}.lock-box{padding:20px}}</style>
@@ -464,9 +469,19 @@ function renderPortfolio(){
   if(!grid) return;
   const arr=[...(db.portfolio||[])].sort((a,b)=>b.created-a.created);
   grid.innerHTML=arr.map(img=>`<div class="gallery-item">
-    <img src="${img.image}" onclick="window.open('${img.image}','_blank')">
-    <button class="gallery-del" onclick="deletePortfolioImage('${img.id}')">حذف</button>
+    <div class="gallery-img-wrap">
+      <img src="${img.image}" onclick="window.open('${img.image}','_blank')">
+      <button class="gallery-del" onclick="deletePortfolioImage('${img.id}')">حذف</button>
+    </div>
+    <input class="gallery-caption" value="${esc(img.caption||'')}" placeholder="اكتب تعليق يشرح الصورة..." oninput="updatePortfolioCaption('${img.id}',this.value)">
   </div>`).join('')||'<div class="empty" style="grid-column:1/-1">لسه مفيش صور، دوس "+ إضافة صور"</div>';
+}
+function updatePortfolioCaption(imgId,value){
+  const img=(db.portfolio||[]).find(x=>x.id===imgId);
+  if(!img) return;
+  img.caption=value;
+  clearTimeout(window.__captionSaveTimer);
+  window.__captionSaveTimer=setTimeout(()=>save(),600); // نستنى شوية بعد آخر حرف قبل ما نحفظ عشان منزعجش الكتابة
 }
 function triggerPortfolioUpload(){
   document.getElementById('portfolioFileInput').click();
@@ -508,7 +523,7 @@ document.getElementById('portfolioFileInput').addEventListener('change',async(e)
   for(const file of files){
     try{
       const compressed=await compressImage(file);
-      db.portfolio.push({id:id(),image:compressed,created:Date.now()});
+      db.portfolio.push({id:id(),image:compressed,caption:'',created:Date.now()});
     }catch(err){ console.error('portfolio upload error',err); }
   }
   e.target.value='';
@@ -531,19 +546,23 @@ function renderPublicGallery(){
     <div class="pg-header"><img class="pg-logo" src="${COMPANY_LOGO}" alt="${COMPANY_NAME}"><div><h1>سابقة أعمال ${COMPANY_NAME}</h1><div class="pg-sub">📞 ${COMPANY_PHONE} · 📍 ${COMPANY_ADDRESS}</div></div></div>
     <div class="pg-grid" id="pgGrid"><div class="empty">جاري تحميل الصور...</div></div>
   </div>
-  <div class="pg-lightbox" id="pgLightbox" onclick="this.classList.remove('show')"><img id="pgLightboxImg" src=""></div>`;
+  <div class="pg-lightbox" id="pgLightbox" onclick="this.classList.remove('show')"><div><img id="pgLightboxImg" src=""><div id="pgLightboxCaption" class="pg-lightbox-caption"></div></div></div>`;
   DOC_REF.get().then(doc=>{
     const data=doc.exists?doc.data():null;
     const imgs=(data && data.portfolio)||[];
     const grid=document.getElementById('pgGrid');
     const sorted=[...imgs].sort((a,b)=>b.created-a.created);
-    grid.innerHTML=sorted.map(img=>`<img src="${img.image}" onclick="openPgLightbox('${img.image}')">`).join('')||'<div class="empty">لسه مفيش صور شغل مضافة</div>';
+    grid.innerHTML=sorted.map(img=>`<div class="pg-card">
+      <img src="${img.image}" onclick="openPgLightbox('${img.image}','${esc(img.caption||'').replace(/'/g,"\\'")}')">
+      ${img.caption?`<div class="pg-caption">${esc(img.caption)}</div>`:''}
+    </div>`).join('')||'<div class="empty">لسه مفيش صور شغل مضافة</div>';
   }).catch(e=>{
     document.getElementById('pgGrid').innerHTML='<div class="empty">تعذر تحميل الصور، تأكد من الاتصال بالإنترنت</div>';
   });
 }
-function openPgLightbox(src){
+function openPgLightbox(src,caption){
   document.getElementById('pgLightboxImg').src=src;
+  document.getElementById('pgLightboxCaption').textContent=caption||'';
   document.getElementById('pgLightbox').classList.add('show');
 }
 
