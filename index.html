@@ -561,7 +561,7 @@ function quoteModalBody(){
     <div class="form-group"><label>التاريخ</label><input id="qDate" type="date" value="${esc(currentQuoteDraft.date)}" oninput="currentQuoteDraft.date=this.value"></div>
   </div>
   <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addQuoteRow()">+ إضافة بند</button></div>
-  <div class="table-wrap"><table><thead><tr><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="quoteRowsBody">${quoteRowsHtml()}</tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="quoteRowsBody">${quoteRowsHtml()}</tbody></table></div>
   <div class="form-grid" style="margin-top:14px">
     <div class="form-group"><label>تكلفة العمل</label><input id="qLabor" type="number" value="${currentQuoteDraft.labor}" oninput="currentQuoteDraft.labor=+this.value||0; updateQuoteTotalsUI()"></div>
   </div>
@@ -574,12 +574,13 @@ function quoteModalBody(){
 }
 function quoteRowsHtml(){
   return currentQuoteDraft.items.map((it,idx)=>`<tr>
+    <td class="small">${idx+1}</td>
     <td><input value="${esc(it.name)}" oninput="updateQuoteRow(${idx},'name',this.value)" placeholder="اسم المكون"></td>
     <td><input type="number" value="${it.qty}" style="width:70px" oninput="updateQuoteRow(${idx},'qty',this.value)"></td>
     <td><input type="number" value="${it.price}" style="width:95px" oninput="updateQuoteRow(${idx},'price',this.value)"></td>
     <td class="amount" id="qRowTotal${idx}">${fmt((+it.qty||0)*(+it.price||0))}</td>
     <td><button class="danger" onclick="removeQuoteRow(${idx})">حذف</button></td>
-  </tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
+  </tr>`).join('')||'<tr><td colspan="6" class="empty">لا توجد بنود</td></tr>';
 }
 function addQuoteRow(){
   currentQuoteDraft.items.push({name:'',qty:1,price:0});
@@ -623,7 +624,7 @@ function printQuotePdf(qid){
   const q=(db.quotes||[]).find(x=>x.id===qid); if(!q)return;
   const componentsTotal=quoteComponentsTotal(q.items);
   const grand=quoteGrandTotal(q);
-  const rows=(q.items||[]).map(it=>`<tr><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">لا توجد بنود</td></tr>';
+  const rows=(q.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>عرض سعر - ${esc(q.title||q.clientName||'')}</title><style>
   body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
@@ -652,7 +653,7 @@ function printQuotePdf(qid){
     <div style="text-align:left"><h2>عرض سعر</h2><div class="meta">${esc(q.date||'')}</div></div>
   </div>
   <div class="meta"><strong>العميل:</strong> ${esc(q.clientName||'-')}${q.title?' · <strong>العرض:</strong> '+esc(q.title):''}</div>
-  <table><thead><tr><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="totals">
     <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
     <div><span>تكلفة العمل</span><span>${fmt(q.labor||0)} ج.م</span></div>
