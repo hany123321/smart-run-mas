@@ -472,7 +472,7 @@ function renderQuotes(){
 
 // ===== الفواتير (نفس نظام عرض السعر بس برقم متسلسل) =====
 function invoiceComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
-function invoiceGrandTotal(inv){return invoiceComponentsTotal(inv.items)+(+inv.labor||0)}
+function invoiceGrandTotal(inv){return invoiceComponentsTotal(inv.items)}
 function invoiceNumberLabel(n){return String(n||0).padStart(4,'0')}
 
 function renderInvoices(){
@@ -510,12 +510,8 @@ function invoiceModalBody(){
   </div>
   <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addInvoiceRow()">+ إضافة بند</button></div>
   <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="invoiceRowsBody">${invoiceRowsHtml()}</tbody></table></div>
-  <div class="form-grid" style="margin-top:14px">
-    <div class="form-group"><label>تكلفة العمل</label><input id="iLabor" type="number" value="${currentInvoiceDraft.labor}" oninput="currentInvoiceDraft.labor=+this.value||0; updateInvoiceTotalsUI()"></div>
-  </div>
-  <div class="cards" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
+  <div class="cards" style="margin-top:14px;grid-template-columns:repeat(2,1fr)">
     <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="iComponentsTotal">${fmt(invoiceComponentsTotal(currentInvoiceDraft.items))}</div></div>
-    <div class="card"><div class="label">تكلفة العمل</div><div class="value" id="iLaborTotal">${fmt(currentInvoiceDraft.labor)}</div></div>
     <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="iGrandTotal">${fmt(invoiceGrandTotal(currentInvoiceDraft))}</div></div>
   </div>
   <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveInvoice()">حفظ الفاتورة</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
@@ -548,10 +544,8 @@ function updateInvoiceRow(idx,field,value){
 }
 function updateInvoiceTotalsUI(){
   const compEl=document.getElementById('iComponentsTotal');
-  const laborEl=document.getElementById('iLaborTotal');
   const grandEl=document.getElementById('iGrandTotal');
   if(compEl) compEl.textContent=fmt(invoiceComponentsTotal(currentInvoiceDraft.items));
-  if(laborEl) laborEl.textContent=fmt(currentInvoiceDraft.labor||0);
   if(grandEl) grandEl.textContent=fmt(invoiceGrandTotal(currentInvoiceDraft));
 }
 function saveInvoice(){
@@ -613,7 +607,6 @@ function printInvoicePdf(invId){
   <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="totals">
     <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
-    <div><span>تكلفة العمل</span><span>${fmt(inv.labor||0)} ج.م</span></div>
     <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
   </div>
   <div class="quote-footer">
@@ -628,7 +621,7 @@ function printInvoicePdf(invId){
 
 // ===== فاتورة خارجية (من غير أي بيانات شركة، ولون مختلف كل مرة) =====
 function extInvoiceComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
-function extInvoiceGrandTotal(inv){return extInvoiceComponentsTotal(inv.items)+(+inv.labor||0)}
+function extInvoiceGrandTotal(inv){return extInvoiceComponentsTotal(inv.items)}
 
 function renderExtInvoices(){
   const el=document.getElementById('extInvoicesList');
@@ -666,12 +659,8 @@ function extInvoiceModalBody(){
   </div>
   <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addExtInvoiceRow()">+ إضافة بند</button></div>
   <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="extInvoiceRowsBody">${extInvoiceRowsHtml()}</tbody></table></div>
-  <div class="form-grid" style="margin-top:14px">
-    <div class="form-group"><label>تكلفة العمل</label><input id="eiLabor" type="number" value="${currentExtInvoiceDraft.labor}" oninput="currentExtInvoiceDraft.labor=+this.value||0; updateExtInvoiceTotalsUI()"></div>
-  </div>
-  <div class="cards" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
+  <div class="cards" style="margin-top:14px;grid-template-columns:repeat(2,1fr)">
     <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="eiComponentsTotal">${fmt(extInvoiceComponentsTotal(currentExtInvoiceDraft.items))}</div></div>
-    <div class="card"><div class="label">تكلفة العمل</div><div class="value" id="eiLaborTotal">${fmt(currentExtInvoiceDraft.labor)}</div></div>
     <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="eiGrandTotal">${fmt(extInvoiceGrandTotal(currentExtInvoiceDraft))}</div></div>
   </div>
   <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveExtInvoice()">حفظ الفاتورة</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
@@ -704,10 +693,8 @@ function updateExtInvoiceRow(idx,field,value){
 }
 function updateExtInvoiceTotalsUI(){
   const compEl=document.getElementById('eiComponentsTotal');
-  const laborEl=document.getElementById('eiLaborTotal');
   const grandEl=document.getElementById('eiGrandTotal');
   if(compEl) compEl.textContent=fmt(extInvoiceComponentsTotal(currentExtInvoiceDraft.items));
-  if(laborEl) laborEl.textContent=fmt(currentExtInvoiceDraft.labor||0);
   if(grandEl) grandEl.textContent=fmt(extInvoiceGrandTotal(currentExtInvoiceDraft));
 }
 function saveExtInvoice(){
@@ -752,7 +739,6 @@ function printExtInvoicePdf(invId){
   <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
   <div class="totals">
     <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
-    <div><span>تكلفة العمل</span><span>${fmt(inv.labor||0)} ج.م</span></div>
     <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
   </div>
   </body></html>`);
