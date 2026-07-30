@@ -336,13 +336,18 @@ const INACTIVITY_LIMIT_MS=5*60*1000;
 let inactivityTimer=null;
 let inactivityDeadline=0;
 function autoHideNumbersOnInactivity(){
-  if(!numbersHidden){
-    numbersHidden=true;
-    const sw=document.getElementById('privacySwitch');
-    if(sw) sw.classList.remove('on');
-    renderUI();
-    toast('تم إخفاء الأرقام تلقائيًا لعدم وجود نشاط');
-  }
+  numbersHidden=true;
+  const sw=document.getElementById('privacySwitch');
+  if(sw) sw.classList.remove('on');
+  closeModal();
+  sessionStorage.removeItem('engineer_accounts_unlocked');
+  const pwInput=document.getElementById('lockPassword');
+  if(pwInput) pwInput.value='';
+  const err=document.getElementById('lockError');
+  if(err) err.textContent='';
+  showLock();
+  setTimeout(()=>document.getElementById('lockPassword')?.focus(),50);
+  toast('تم قفل الصفحة تلقائيًا لعدم وجود نشاط، اكتب كلمة المرور للدخول');
   updateCountdownDisplay();
 }
 function resetInactivityTimer(){
