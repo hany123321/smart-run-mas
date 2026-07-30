@@ -380,20 +380,20 @@ function projectValue(p){
   return (p.value||0)+additions;
 }
 
-// إجمالي المتفق عليه مع الورش/الفنيين للتصنيع والتركيب (ميكانيكا) على مشروع معين
-function projectManufacturingTotal(pid){
+// إجمالي اللي اتدفع فعلاً للورش/الفنيين (التصنيع والتركيب) على مشروع معين — المتفق عليه لسه ماخصمش، غير اللي اتدفع
+function projectManufacturingPaidTotal(pid){
   const p=projectById(pid); if(!p) return 0;
-  return (p.manufacturing||[]).reduce((a,m)=>a+(m.agreedAmount||0),0);
+  return (p.manufacturing||[]).reduce((a,m)=>a+((m.payments||[]).reduce((s,x)=>s+(x.amount||0),0)),0);
 }
-function allManufacturingTotal(){
-  return db.projects.reduce((a,p)=>a+projectManufacturingTotal(p.id),0);
+function allManufacturingPaidTotal(){
+  return db.projects.reduce((a,p)=>a+projectManufacturingPaidTotal(p.id),0);
 }
 function projectStats(pid){
   const tx=db.transactions.filter(t=>t.projectId===pid);
   const inSum=tx.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
   const txCosts=tx.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
-  const mfgCosts=projectManufacturingTotal(pid);
-  const costs=txCosts+mfgCosts; // تكاليف الحركات + المتفق عليه مع الورش (يتخصم من الربح)
+  const mfgCosts=projectManufacturingPaidTotal(pid);
+  const costs=txCosts+mfgCosts; // تكاليف الحركات + اللي اتدفع فعلاً للورش (مش المتفق عليه كامل)
   const profit=inSum-costs;
   const p=projectById(pid);
   const remaining=Math.max(0,projectValue(p)-inSum);
@@ -402,7 +402,7 @@ function projectStats(pid){
 function totals(){
   const incoming=db.transactions.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
   const txOutgoing=db.transactions.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
-  const mfgOutgoing=allManufacturingTotal();
+  const mfgOutgoing=allManufacturingPaidTotal();
   const outgoing=txOutgoing+mfgOutgoing;
   const projectReceivable=db.projects.reduce((a,p)=>a+projectStats(p.id).remaining,0);
   const payable=db.suppliers.reduce((a,s)=>a+(s.balance||0),0);
@@ -1245,7 +1245,7 @@ function printProjectPdf(pid){
     const remaining=Math.max(0,(m.agreedAmount||0)-paid);
     return `<tr><td>${esc(m.workshopName||'-')}</td><td>${esc(m.technicianName||'-')}</td><td>${m.date||'-'}</td><td class="amount">${fmt(m.agreedAmount)}</td><td class="amount">${fmt(paid)}</td><td class="amount">${fmt(remaining)}</td></tr>`;
   }).join('');
-  const mfgHtml=mfg.length?`<h3 style="margin-top:24px">التصنيع والتركيب (ميكانيكا)</h3><table><thead><tr><th>الورشة</th><th>الفني</th><th>التاريخ</th><th>المتفق عليه</th><th>المدفوع</th><th>المتبقي</th></tr></thead><tbody>${mfgRows}</tbody></table><div class="small" style="margin-top:8px">إجمالي التصنيع والتركيب ${money(s.mfgCosts)} مضاف ضمن التكاليف ومتخصم من الربح أعلاه.</div>`:'';
+  const mfgHtml=mfg.length?`<h3 style="margin-top:24px">التصنيع والتركيب (ميكانيكا)</h3><table><thead><tr><th>الورشة</th><th>الفني</th><th>التاريخ</th><th>المتفق عليه</th><th>المدفوع</th><th>المتبقي</th></tr></thead><tbody>${mfgRows}</tbody></table><div class="small" style="margin-top:8px">إجمالي المدفوع فعلاً للورش ${money(s.mfgCosts)} هو المضاف ضمن التكاليف ومتخصم من الربح أعلاه (المتفق عليه ${money(mfg.reduce((a,m)=>a+(m.agreedAmount||0),0))} لسه ما اتخصمش لحد ما يتدفع).</div>`:'';
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2,h3{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>القيمة الأساسية:</strong> ${money(p.value)}</div><div><strong>القيمة المتفق عليها (بعد الزيادات):</strong> ${money(projectValue(p))}</div></div><div class="summary"><div><strong>المتبقي:</strong> ${money(s.remaining)}</div><div><strong>المقبوض:</strong> ${money(s.inSum)}</div></div><div class="summary"><div><strong>التكاليف (حركات + تصنيع وتركيب):</strong> ${money(s.costs)}</div><div><strong>الربح:</strong> ${money(s.profit)}</div></div>${additionsHtml}${mfgHtml}<h3 style="margin-top:24px">حركات المشروع</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   win.document.close();
@@ -1289,7 +1289,7 @@ function openProjectDetails(pid){
     <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(s.remaining)}</div></div>
   </div>
   ${additions.length?`<div class="small" style="margin-bottom:10px">القيمة الأساسية ${dmoney(p.value)} + زيادات الشغل ${dmoney(additions.reduce((a,x)=>a+x.amount,0))} = الإجمالي ${dmoney(projectValue(p))}</div>`:''}
-  ${s.mfgCosts>0?`<div class="small" style="margin-bottom:10px">التكاليف = حركات المشروع ${dmoney(s.txCosts)} + التصنيع والتركيب (ميكانيكا) ${dmoney(s.mfgCosts)} = إجمالي ${dmoney(s.costs)} (متخصم من الربح)</div>`:''}
+  ${s.mfgCosts>0?`<div class="small" style="margin-bottom:10px">التكاليف = حركات المشروع ${dmoney(s.txCosts)} + دفعات التصنيع والتركيب المدفوعة فعلاً ${dmoney(s.mfgCosts)} = إجمالي ${dmoney(s.costs)} (المتفق عليه مع الورشة لا يُخصم إلا لما يتدفع)</div>`:''}
   <div class="panel"><div class="panel-title"><h3>زيادات الشغل</h3><button class="ghost-btn" onclick="openAdditionModal('${pid}')">+ زيادة شغل</button></div>
   ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${dmoney(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
   </div>
