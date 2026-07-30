@@ -247,6 +247,7 @@ textarea{min-height:80px;resize:vertical}
         <div class="panel" id="portfolioLinkBox">
           <div class="panel-title"><h3>رابط المعرض للعميل</h3></div>
           <div class="small" style="margin-bottom:10px">ابعت الرابط ده لأي عميل، أو هيتحط أوتوماتيك في أي عرض سعر تطبعه</div>
+          <div id="portfolioLocalWarning" style="display:none;background:rgba(211,109,89,.12);color:var(--red);border:1px solid rgba(211,109,89,.4);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:700">⚠️ الرابط ده مش هيشتغل عند العميل لأنك فاتح الصفحة كملف على الجهاز مش من موقع منشور. لازم تنشر التطبيق على استضافة (زي Firebase Hosting) وتفتحه من الرابط بتاعها عشان الزرار يشتغل مع العملاء.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <input id="portfolioLinkText" readonly style="flex:1;min-width:220px">
             <button class="ghost-btn" onclick="copyPortfolioLink()">نسخ الرابط</button>
@@ -768,12 +769,17 @@ function printExtInvoicePdf(invId){
   win.print();
 }
 function portfolioPublicUrl(){
-  return location.origin+location.pathname+'?portfolio=1';
+  return location.href.split('#')[0].split('?')[0]+'?portfolio=1';
+}
+function isLocalFile(){
+  return location.protocol==='file:';
 }
 function renderPortfolio(){
   const grid=document.getElementById('portfolioGrid');
   const linkInput=document.getElementById('portfolioLinkText');
   if(linkInput) linkInput.value=portfolioPublicUrl();
+  const warn=document.getElementById('portfolioLocalWarning');
+  if(warn) warn.style.display=isLocalFile()?'block':'none';
   if(!grid) return;
   const arr=[...(db.portfolio||[])].sort((a,b)=>b.created-a.created);
   grid.innerHTML=arr.map(img=>`<div class="gallery-item">
@@ -949,6 +955,7 @@ function deleteQuote(qid){
 }
 function printQuotePdf(qid){
   const q=(db.quotes||[]).find(x=>x.id===qid); if(!q)return;
+  if(isLocalFile()) toast('⚠️ زرار "شوف سابقة أعمالنا" مش هيشتغل عند العميل غير لو التطبيق منشور أونلاين');
   const componentsTotal=quoteComponentsTotal(q.items);
   const grand=quoteGrandTotal(q);
   const rows=(q.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
