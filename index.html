@@ -22,7 +22,14 @@ button{cursor:pointer}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
 .brand{font-family:Tajawal;font-weight:900;font-size:25px}
 .brand span{color:var(--accent2)}
-.top-actions{display:flex;gap:8px}
+.top-actions{display:flex;gap:8px;align-items:center}
+.privacy-toggle{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:8px 12px}
+.privacy-label{font-size:12px;color:var(--muted);white-space:nowrap}
+.privacy-switch{position:relative;width:42px;height:24px;background:#303840;border-radius:20px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.privacy-switch .knob{position:absolute;top:3px;right:3px;width:18px;height:18px;background:#8e99a4;border-radius:50%;transition:right .2s,background .2s}
+.privacy-switch.on{background:var(--green)}
+.privacy-switch.on .knob{right:21px;background:#fff}
+@media(max-width:420px){.privacy-toggle{width:100%;justify-content:space-between}}
 .menu-toggle{display:none;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:10px 13px;font-size:16px}
 .icon-btn,.ghost-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:10px 13px}
 .icon-btn:hover,.ghost-btn:hover{border-color:var(--accent);color:var(--text)}
@@ -135,6 +142,10 @@ textarea{min-height:80px;resize:vertical}
     <div class="brand">حسابات <span>المهندس ⚡</span></div>
     <div class="top-actions">
       <button class="menu-toggle" id="menuToggle" title="القائمة">☰</button>
+      <div class="privacy-toggle" title="إظهار/إخفاء الأرقام">
+        <span class="privacy-label">إظهار الأرقام</span>
+        <span class="privacy-switch" id="privacySwitch" onclick="togglePrivacy()"><span class="knob"></span></span>
+      </div>
       <button class="ghost-btn" id="exportBtn">تصدير البيانات</button>
       <button class="icon-btn" id="resetBtn" title="مسح كل البيانات">⟲</button>
     </div>
@@ -305,6 +316,16 @@ let suppressNextSnapshot=false; // يمنع اللوب لما إحنا نفسن�
 const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
 const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const money=n=>fmt(n)+' ج.م';
+let numbersHidden=true; // الأرقام مخفية افتراضياً كل ما تفتح الصفحة
+const MASK='★ ★ ★ ★';
+const dfmt=n=>numbersHidden?MASK:fmt(n);
+const dmoney=n=>numbersHidden?MASK:money(n);
+function togglePrivacy(){
+  numbersHidden=!numbersHidden;
+  const sw=document.getElementById('privacySwitch');
+  if(sw) sw.classList.toggle('on',!numbersHidden);
+  renderUI();
+}
 
 function setSyncStatus(state){
   const dot=document.getElementById('syncDot');
@@ -377,19 +398,19 @@ function totals(){
 
 function renderDashboard(){
   const t=totals();
-  document.getElementById('statBalance').textContent=money(t.balance);
-  document.getElementById('statReceivable').textContent=money(t.receivable);
-  document.getElementById('statPayable').textContent=money(t.payable);
-  document.getElementById('statProfit').textContent=money(t.profit);
+  document.getElementById('statBalance').textContent=dmoney(t.balance);
+  document.getElementById('statReceivable').textContent=dmoney(t.receivable);
+  document.getElementById('statPayable').textContent=dmoney(t.payable);
+  document.getElementById('statProfit').textContent=dmoney(t.profit);
   document.getElementById('projectCount').textContent=db.projects.length+' مشروع';
   const list=document.getElementById('dashboardProjects');
   list.innerHTML=db.projects.slice(0,8).map(p=>{
     const s=projectStats(p.id), ratio=projectValue(p)?Math.min(100,s.inSum/projectValue(p)*100):0;
     return `<div class="project-card" style="border-inline-start-color:${projectColor(p)}" onclick="openProjectDetails('${p.id}')">
-      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(projectValue(p))}</div></div>
-      <div class="project-balance ${s.remaining>0?'':'green'}">${money(s.remaining)}</div></div>
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${dmoney(projectValue(p))}</div></div>
+      <div class="project-balance ${s.remaining>0?'':'green'}">${dmoney(s.remaining)}</div></div>
       <div class="progress"><span style="width:${ratio}%"></span></div>
-      <div class="project-meta">مقبوض ${money(s.inSum)} · ربح ${money(s.profit)}</div>
+      <div class="project-meta">مقبوض ${dmoney(s.inSum)} · ربح ${dmoney(s.profit)}</div>
     </div>`;
   }).join('')||'<div class="empty">لا يوجد مشاريع بعد</div>';
   renderRecent();
@@ -399,7 +420,7 @@ function renderRecent(){
   const arr=[...db.transactions].sort((a,b)=>b.created-a.created).slice(0,7);
   el.innerHTML=arr.map(t=>`<div class="project-card">
     <div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div>
-    <div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${fmt(t.amount)}</div></div>
+    <div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${dfmt(t.amount)}</div></div>
   </div>`).join('')||'<div class="empty">لا توجد حركات</div>';
 }
 
@@ -410,13 +431,13 @@ function renderProjects(){
   el.innerHTML=arr.map(p=>{
     const s=projectStats(p.id);
     return `<div class="panel" style="border-inline-start:5px solid ${projectColor(p)}">
-      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${money(projectValue(p))}</div></div>
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${dmoney(projectValue(p))}</div></div>
       <div><button class="ghost-btn" onclick="openProjectDetails('${p.id}')">فتح</button></div></div>
       <div class="cards" style="margin:14px 0 0;grid-template-columns:repeat(4,1fr)">
-        <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
-        <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
-        <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
-        <div class="card"><div class="label">المتبقي</div><div class="value blue">${fmt(s.remaining)}</div></div>
+        <div class="card"><div class="label">المقبوض</div><div class="value green">${dfmt(s.inSum)}</div></div>
+        <div class="card"><div class="label">التكاليف</div><div class="value red">${dfmt(s.costs)}</div></div>
+        <div class="card"><div class="label">الربح</div><div class="value yellow">${dfmt(s.profit)}</div></div>
+        <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(s.remaining)}</div></div>
       </div>
     </div>`;
   }).join('')||'<div class="panel empty">لا توجد مشاريع</div>';
@@ -427,7 +448,7 @@ function renderContacts(kind){
   const el=document.getElementById(kind==='client'?'clientsList':'suppliersList');
   el.innerHTML=arr.map(x=>`<div class="panel"><div class="project-row">
     <div><div class="project-name">${esc(x.name)}</div><div class="project-meta">${esc(x.phone||'بدون هاتف')} ${x.notes?' · '+esc(x.notes):''}</div></div>
-    <div class="amount ${kind==='client'?'green':'red'}">${money(x.balance||0)}</div>
+    <div class="amount ${kind==='client'?'green':'red'}">${dmoney(x.balance||0)}</div>
   </div></div>`).join('')||'<div class="panel empty">لا توجد بيانات</div>';
 }
 
@@ -437,18 +458,18 @@ function renderTransactions(){
   el.innerHTML=arr.map(t=>{
     const p=projectById(t.projectId);
     const party=t.partyName||'';
-    return `<tr><td>${t.date}</td><td><span class="badge ${typeClass(t.type)}">${typeLabel(t.type)}</span></td><td>${esc(t.desc||'-')}</td><td>${esc(p?.name||'-')}</td><td>${esc(party||'-')}</td><td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</td><td>${t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">فاتورة</button>`:'-'}</td><td><button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}')">حذف</button></td></tr>`;
+    return `<tr><td>${t.date}</td><td><span class="badge ${typeClass(t.type)}">${typeLabel(t.type)}</span></td><td>${esc(t.desc||'-')}</td><td>${esc(p?.name||'-')}</td><td>${esc(party||'-')}</td><td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${dmoney(t.amount)}</td><td>${t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">فاتورة</button>`:'-'}</td><td><button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}')">حذف</button></td></tr>`;
   }).join('')||'<tr><td colspan="8" class="empty">لا توجد حركات</td></tr>';
 }
 function renderReports(){
   const sum=t=>db.transactions.filter(x=>x.type===t).reduce((a,x)=>a+x.amount,0);
-  document.getElementById('repPayments').textContent=money(sum('payment'));
-  document.getElementById('repPurchases').textContent=money(sum('purchase'));
-  document.getElementById('repLabor').textContent=money(sum('labor'));
-  document.getElementById('repExpenses').textContent=money(sum('expense')+sum('withdrawal'));
+  document.getElementById('repPayments').textContent=dmoney(sum('payment'));
+  document.getElementById('repPurchases').textContent=dmoney(sum('purchase'));
+  document.getElementById('repLabor').textContent=dmoney(sum('labor'));
+  document.getElementById('repExpenses').textContent=dmoney(sum('expense')+sum('withdrawal'));
   document.getElementById('reportProjects').innerHTML=db.projects.map(p=>{
     const s=projectStats(p.id);
-    return `<tr><td>${esc(p.name)}</td><td class="amount in">${money(s.inSum)}</td><td class="amount out">${money(s.costs)}</td><td class="amount ${s.profit>=0?'in':'out'}">${money(s.profit)}</td><td class="amount">${money(s.remaining)}</td></tr>`;
+    return `<tr><td>${esc(p.name)}</td><td class="amount in">${dmoney(s.inSum)}</td><td class="amount out">${dmoney(s.costs)}</td><td class="amount ${s.profit>=0?'in':'out'}">${dmoney(s.profit)}</td><td class="amount">${dmoney(s.remaining)}</td></tr>`;
   }).join('')||'<tr><td colspan="5" class="empty">لا توجد مشاريع</td></tr>';
 }
 
@@ -1211,20 +1232,20 @@ function openProjectDetails(pid){
   const p=projectById(pid),s=projectStats(pid);
   const additions=p.additions||[];
   openModal(`<span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}`,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
-    <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${fmt(projectValue(p))}</div></div>
-    <div class="card"><div class="label">المقبوض</div><div class="value green">${fmt(s.inSum)}</div></div>
-    <div class="card"><div class="label">التكاليف</div><div class="value red">${fmt(s.costs)}</div></div>
-    <div class="card"><div class="label">الربح</div><div class="value yellow">${fmt(s.profit)}</div></div>
-    <div class="card"><div class="label">المتبقي</div><div class="value blue">${fmt(s.remaining)}</div></div>
+    <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${dfmt(projectValue(p))}</div></div>
+    <div class="card"><div class="label">المقبوض</div><div class="value green">${dfmt(s.inSum)}</div></div>
+    <div class="card"><div class="label">التكاليف</div><div class="value red">${dfmt(s.costs)}</div></div>
+    <div class="card"><div class="label">الربح</div><div class="value yellow">${dfmt(s.profit)}</div></div>
+    <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(s.remaining)}</div></div>
   </div>
-  ${additions.length?`<div class="small" style="margin-bottom:10px">القيمة الأساسية ${money(p.value)} + زيادات الشغل ${money(additions.reduce((a,x)=>a+x.amount,0))} = الإجمالي ${money(projectValue(p))}</div>`:''}
+  ${additions.length?`<div class="small" style="margin-bottom:10px">القيمة الأساسية ${dmoney(p.value)} + زيادات الشغل ${dmoney(additions.reduce((a,x)=>a+x.amount,0))} = الإجمالي ${dmoney(projectValue(p))}</div>`:''}
   <div class="panel"><div class="panel-title"><h3>زيادات الشغل</h3><button class="ghost-btn" onclick="openAdditionModal('${pid}')">+ زيادة شغل</button></div>
-  ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${money(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
+  ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${dmoney(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
   </div>
   <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="openQuickExpenseModal('${pid}')">+ مصروف مشروع</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
   ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
     const invoiceHtml=t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">عرض الفاتورة</button>`:'<span class="badge">بدون فاتورة</span>';
-    return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml} <button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}');openProjectDetails('${pid}')">حذف</button></div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${money(t.amount)}</div></div></div>`;
+    return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml} <button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}');openProjectDetails('${pid}')">حذف</button></div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${dmoney(t.amount)}</div></div></div>`;
   }).join('')||'<div class="empty">لا توجد حركات</div>'}</div>`);
 }
 function openAdditionModal(pid){
