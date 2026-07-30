@@ -25,6 +25,7 @@ button{cursor:pointer}
 .top-actions{display:flex;gap:8px;align-items:center}
 .privacy-toggle{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:8px 12px}
 .privacy-label{font-size:12px;color:var(--muted);white-space:nowrap}
+.privacy-countdown{font-family:'JetBrains Mono';font-size:11px;color:var(--muted);white-space:nowrap;min-width:34px;text-align:center}
 .privacy-switch{position:relative;width:42px;height:24px;background:#303840;border-radius:20px;cursor:pointer;transition:background .2s;flex-shrink:0}
 .privacy-switch .knob{position:absolute;top:3px;right:3px;width:18px;height:18px;background:#8e99a4;border-radius:50%;transition:right .2s,background .2s}
 .privacy-switch.on{background:var(--green)}
@@ -145,6 +146,7 @@ textarea{min-height:80px;resize:vertical}
       <div class="privacy-toggle" title="إظهار/إخفاء الأرقام">
         <span class="privacy-label">إظهار الأرقام</span>
         <span class="privacy-switch" id="privacySwitch" onclick="togglePrivacy()"><span class="knob"></span></span>
+        <span class="privacy-countdown" id="privacyCountdown"></span>
       </div>
       <button class="ghost-btn" id="exportBtn">تصدير البيانات</button>
       <button class="icon-btn" id="resetBtn" title="مسح كل البيانات">⟲</button>
@@ -326,7 +328,43 @@ function togglePrivacy(){
   const sw=document.getElementById('privacySwitch');
   if(sw) sw.classList.toggle('on',!numbersHidden);
   renderUI();
+  resetInactivityTimer();
 }
+
+// لو الصفحة فاضلة مفتوحة 5 دقائق من غير أي حركة (كليك/كتابة/سكرول) والأرقام ظاهرة، يقفل زرار "إظهار الأرقام" أوتوماتيك لحمايتها
+const INACTIVITY_LIMIT_MS=5*60*1000;
+let inactivityTimer=null;
+let inactivityDeadline=0;
+function autoHideNumbersOnInactivity(){
+  if(!numbersHidden){
+    numbersHidden=true;
+    const sw=document.getElementById('privacySwitch');
+    if(sw) sw.classList.remove('on');
+    renderUI();
+    toast('تم إخفاء الأرقام تلقائيًا لعدم وجود نشاط');
+  }
+  updateCountdownDisplay();
+}
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  inactivityDeadline=Date.now()+INACTIVITY_LIMIT_MS;
+  inactivityTimer=setTimeout(autoHideNumbersOnInactivity,INACTIVITY_LIMIT_MS);
+  updateCountdownDisplay();
+}
+function updateCountdownDisplay(){
+  const el=document.getElementById('privacyCountdown');
+  if(!el)return;
+  if(numbersHidden){ el.textContent=''; return; }
+  const remainingMs=Math.max(0,inactivityDeadline-Date.now());
+  const mm=Math.floor(remainingMs/60000);
+  const ss=Math.floor((remainingMs%60000)/1000);
+  el.textContent=mm+':'+String(ss).padStart(2,'0');
+}
+setInterval(updateCountdownDisplay,1000);
+['mousemove','mousedown','keydown','touchstart','scroll','wheel','click'].forEach(evt=>{
+  document.addEventListener(evt,resetInactivityTimer,{passive:true});
+});
+resetInactivityTimer();
 
 function setSyncStatus(state){
   const dot=document.getElementById('syncDot');
