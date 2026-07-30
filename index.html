@@ -1237,6 +1237,7 @@ function printProjectPdf(pid){
 function openProjectDetails(pid){
   const p=projectById(pid),s=projectStats(pid);
   const additions=p.additions||[];
+  const mfg=p.manufacturing||[];
   openModal(`<span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}`,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
     <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${dfmt(projectValue(p))}</div></div>
     <div class="card"><div class="label">المقبوض</div><div class="value green">${dfmt(s.inSum)}</div></div>
@@ -1247,6 +1248,22 @@ function openProjectDetails(pid){
   ${additions.length?`<div class="small" style="margin-bottom:10px">القيمة الأساسية ${dmoney(p.value)} + زيادات الشغل ${dmoney(additions.reduce((a,x)=>a+x.amount,0))} = الإجمالي ${dmoney(projectValue(p))}</div>`:''}
   <div class="panel"><div class="panel-title"><h3>زيادات الشغل</h3><button class="ghost-btn" onclick="openAdditionModal('${pid}')">+ زيادة شغل</button></div>
   ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${dmoney(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
+  </div>
+  <div class="panel"><div class="panel-title"><h3>التصنيع والتركيب (ميكانيكا)</h3><button class="ghost-btn" onclick="openManufacturingModal('${pid}')">+ تصنيع/تركيب جديد</button></div>
+  ${mfg.length?mfg.map(m=>{
+    const paid=(m.payments||[]).reduce((a,x)=>a+x.amount,0);
+    const remaining=Math.max(0,(m.agreedAmount||0)-paid);
+    return `<div class="project-card"><div class="project-row">
+      <div>
+        <div class="project-name">${esc(m.workshopName||'ورشة بدون اسم')}${m.technicianName?' — '+esc(m.technicianName):''}</div>
+        <div class="project-meta">المتفق عليه: ${dmoney(m.agreedAmount)} · المدفوع: ${dmoney(paid)} · المتبقي: ${dmoney(remaining)}${m.notes?' · '+esc(m.notes):''}</div>
+      </div>
+      <div>
+        <button class="ghost-btn" onclick="openManufacturingDetails('${pid}','${m.id}')">الدفعات (${(m.payments||[]).length})</button>
+        <button class="danger" onclick="deleteManufacturing('${pid}','${m.id}')">حذف</button>
+      </div>
+    </div></div>`;
+  }).join(''):'<div class="empty">لا يوجد تصنيع أو تركيب مضاف</div>'}
   </div>
   <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="openQuickExpenseModal('${pid}')">+ مصروف مشروع</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
   ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
@@ -1276,6 +1293,87 @@ function deleteAddition(pid,addId){
   p.additions=(p.additions||[]).filter(a=>a.id!==addId);
   renderAll();
   openProjectDetails(pid);
+  toast('تم الحذف');
+}
+function openManufacturingModal(pid){
+  openModal('إضافة تصنيع / تركيب',`<div class="form-grid">
+    <div class="form-group"><label>اسم الورشة</label><input id="fMfgWorkshop" placeholder="مثال: ورشة الأمل"></div>
+    <div class="form-group"><label>اسم الفني</label><input id="fMfgTech" placeholder="مثال: محمد علي"></div>
+    <div class="form-group"><label>المبلغ المتفق عليه</label><input id="fMfgAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fMfgDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fMfgNotes" placeholder="أي تفاصيل عن الشغل..."></textarea></div>
+  <div class="form-actions"><button class="primary" onclick="saveManufacturing('${pid}')">إضافة</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function saveManufacturing(pid){
+  const workshopName=document.getElementById('fMfgWorkshop').value.trim();
+  const technicianName=document.getElementById('fMfgTech').value.trim();
+  const agreedAmount=+document.getElementById('fMfgAmount').value||0;
+  if(!workshopName&&!technicianName)return toast('اكتب اسم الورشة أو اسم الفني');
+  if(!agreedAmount||agreedAmount<=0)return toast('اكتب مبلغ صحيح');
+  const p=projectById(pid); if(!p)return;
+  if(!p.manufacturing) p.manufacturing=[];
+  p.manufacturing.push({id:id(),workshopName,technicianName,agreedAmount,date:document.getElementById('fMfgDate').value,notes:document.getElementById('fMfgNotes').value.trim(),created:Date.now(),payments:[]});
+  renderAll();
+  openProjectDetails(pid);
+  toast('تمت إضافة التصنيع/التركيب');
+}
+function manufacturingById(pid,mid){
+  const p=projectById(pid); if(!p)return null;
+  return (p.manufacturing||[]).find(m=>m.id===mid);
+}
+function deleteManufacturing(pid,mid){
+  if(!confirm('حذف التصنيع/التركيب ده وكل الدفعات المرتبطة بيه؟'))return;
+  const p=projectById(pid); if(!p)return;
+  p.manufacturing=(p.manufacturing||[]).filter(m=>m.id!==mid);
+  renderAll();
+  openProjectDetails(pid);
+  toast('تم الحذف');
+}
+function openManufacturingDetails(pid,mid){
+  const m=manufacturingById(pid,mid); if(!m)return;
+  const payments=(m.payments||[]).slice().sort((a,b)=>b.created-a.created);
+  const paid=(m.payments||[]).reduce((a,x)=>a+x.amount,0);
+  const remaining=Math.max(0,(m.agreedAmount||0)-paid);
+  openModal(`دفعات: ${esc(m.workshopName||'ورشة')}${m.technicianName?' — '+esc(m.technicianName):''}`,`
+  <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card"><div class="label">المتفق عليه</div><div class="value">${dfmt(m.agreedAmount)}</div></div>
+    <div class="card"><div class="label">المدفوع</div><div class="value green">${dfmt(paid)}</div></div>
+    <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(remaining)}</div></div>
+  </div>
+  <div class="panel-title"><h3>سجل الدفعات</h3><button class="ghost-btn" onclick="openPaymentModal('${pid}','${mid}')">+ دفعة جديدة</button></div>
+  ${payments.length?payments.map(pay=>`<div class="project-card"><div class="project-row">
+    <div><div class="project-name">${dmoney(pay.amount)}</div><div class="project-meta">${pay.date||''} ${pay.time||''}${pay.notes?' · '+esc(pay.notes):''}</div></div>
+    <div><button class="danger" onclick="deletePayment('${pid}','${mid}','${pay.id}')">حذف</button></div>
+  </div></div>`).join(''):'<div class="empty">لا توجد دفعات مسجلة</div>'}
+  <div class="form-actions"><button class="ghost-btn" onclick="openProjectDetails('${pid}')">رجوع للمشروع</button></div>`);
+}
+function openPaymentModal(pid,mid){
+  const now=new Date();
+  const timeVal=now.toTimeString().slice(0,5);
+  openModal('تسجيل دفعة',`<div class="form-grid">
+    <div class="form-group"><label>المبلغ</label><input id="fPayAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fPayDate" type="date" value="${now.toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>الوقت</label><input id="fPayTime" type="time" value="${timeVal}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fPayNotes" placeholder="ملاحظات على الدفعة..."></textarea></div>
+  <div class="form-actions"><button class="primary" onclick="savePayment('${pid}','${mid}')">حفظ الدفعة</button><button class="ghost-btn" onclick="openManufacturingDetails('${pid}','${mid}')">إلغاء</button></div>`);
+}
+function savePayment(pid,mid){
+  const amount=+document.getElementById('fPayAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const m=manufacturingById(pid,mid); if(!m)return;
+  if(!m.payments) m.payments=[];
+  m.payments.push({id:id(),amount,date:document.getElementById('fPayDate').value,time:document.getElementById('fPayTime').value,notes:document.getElementById('fPayNotes').value.trim(),created:Date.now()});
+  renderAll();
+  openManufacturingDetails(pid,mid);
+  toast('تم تسجيل الدفعة');
+}
+function deletePayment(pid,mid,payId){
+  if(!confirm('حذف هذه الدفعة؟'))return;
+  const m=manufacturingById(pid,mid); if(!m)return;
+  m.payments=(m.payments||[]).filter(x=>x.id!==payId);
+  renderAll();
+  openManufacturingDetails(pid,mid);
   toast('تم الحذف');
 }
 function openProjectEdit(pid){
