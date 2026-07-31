@@ -2,14 +2,3 @@
 __pycache__/
 *.pyc
 .DS_Store
-
-# نسخة احتياطية من التطبيق القديم — فيها كلمة المرور القديمة مكتوبة
-# في الكود، فممنوع ترفع على GitHub Pages.
-index.legacy-backup.html
-
-# نسخ قديمة من التطبيق — مش المفروض تتنشر مع الموقع
-smart mas.html
-smart mas.rar
-
-# ملف بيانات قديم من قبل ما نستخدم Firestore
-data.json
