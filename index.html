@@ -1754,6 +1754,28 @@ const TX_TYPES = {
   withdrawal: { label:'سحب شخصي',        icon:'🏦', dir:'out', color:'blue'   }
 };
 
+/* ---------- البيانات الفنية للمشروع ----------
+   أنواع الإشارات في جدول عناوين PLC / SCADA. */
+const IO_TYPES = {
+  DI:  { label:'دخول رقمي (DI)',   color:'blue'   },
+  DO:  { label:'خروج رقمي (DO)',   color:'green'  },
+  AI:  { label:'دخول تناظري (AI)', color:'yellow' },
+  AO:  { label:'خروج تناظري (AO)', color:'violet' },
+  MEM: { label:'ذاكرة / داخلي',    color:'muted'  },
+  OTH: { label:'أخرى',             color:'muted'  }
+};
+
+/* الحقول الجاهزة في «المعلومات العامة» لكل مشروع.
+   لو عايز تضيف حقل ثابت جديد، ضيفه هنا وهيظهر تلقائياً. */
+const TECH_FIELDS = [
+  { key:'plcModel',  label:'موديل الـ PLC',      placeholder:'S7-1200 / CPU 1214C' },
+  { key:'plcIp',     label:'IP الخاص بالـ PLC',  placeholder:'192.168.0.1' },
+  { key:'hmiModel',  label:'شاشة HMI',           placeholder:'KTP700 Basic' },
+  { key:'scadaApp',  label:'برنامج SCADA',       placeholder:'WinCC / Ignition' },
+  { key:'protocol',  label:'بروتوكول الاتصال',   placeholder:'Profinet / Modbus TCP' },
+  { key:'location',  label:'مكان اللوحة',        placeholder:'غرفة الكنترول' }
+];
+
 /* ---------- فئات المصروفات السريعة ---------- */
 const EXPENSE_CATEGORIES = [
   { label:'موصلات وتوصيلات', type:'purchase' },
@@ -2571,6 +2593,18 @@ const Data = (function(){
         m.agreedAmount = asNumber(m.agreedAmount, 0);
         m.payments = asArray(m.payments);
         m.payments.forEach(pay => { pay.amount = asNumber(pay.amount, 0); });
+      });
+
+      /* البيانات الفنية: المشاريع القديمة مافيهاش الحقول دي، فبنضمن
+         وجودها هنا بدل ما الواجهة تقع على undefined. */
+      p.tech = (p.tech && typeof p.tech === 'object') ? p.tech : {};
+      p.tech.extra = asArray(p.tech.extra);
+      // طريقة تسجيل العناوين: جدول منظم ولا كتابة حرة
+      if (p.tech.mode !== 'text') p.tech.mode = 'table';
+      p.tech.freeText = typeof p.tech.freeText === 'string' ? p.tech.freeText : '';
+      p.ioTags = asArray(p.ioTags);
+      p.ioTags.forEach(t => {
+        if (!IO_TYPES[t.type]) t.type = 'OTH';
       });
     });
     out.transactions.forEach(t => {
@@ -4676,6 +4710,8 @@ Actions['project-open'] = function(el){
       '<button type="button" class="btn btn-ghost btn-sm" data-act="mfg-new" data-pid="' + escAttr(pid) + '">+ تصنيع/تركيب</button>' +
     '</div>' + mfgHtml + '</div>' +
 
+    techPanelHtml(p) +
+
     '<div class="panel"><div class="panel-head"><h3>حركات المشروع</h3><div class="panel-actions">' +
       '<button type="button" class="btn btn-ghost btn-sm" data-act="project-edit" data-id="' + escAttr(pid) + '">✎ تعديل</button>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-act="expense-new" data-pid="' + escAttr(pid) + '">+ مصروف</button>' +
@@ -4684,6 +4720,376 @@ Actions['project-open'] = function(el){
       '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
     '</div></div>' + txHtml + '</div>',
     { wide:true });
+};
+
+/* ============================================================
+   البيانات الفنية للمشروع — عناوين PLC و SCADA والمعلومات العامة
+   ------------------------------------------------------------
+   محفوظة جوه المشروع نفسه:
+     p.tech   = { plcModel, plcIp, …, notes, extra:[{id,key,value}] }
+     p.ioTags = [{ id, name, type, plc, scada, notes }]
+   ============================================================ */
+let ioTagQuery = '';           // بحث جدول العناوين (بيفضل بين إعادات الرسم)
+let techExtraDraft = [];       // الحقول الحرة أثناء التعديل بس
+
+function filteredIoTags(p){
+  const q = ioTagQuery.trim().toLowerCase();
+  const tags = p.ioTags || [];
+  if (!q) return tags;
+  return tags.filter(t =>
+    ((t.name || '') + ' ' + (t.plc || '') + ' ' + (t.scada || '') + ' ' + (t.notes || ''))
+      .toLowerCase().includes(q));
+}
+
+/* جدول العناوين لوحده — بيتعاد رسمه لوحده مع كل حرف في البحث */
+function ioTagsTableHtml(p){
+  const pid   = p.id;
+  const all   = p.ioTags || [];
+  const shown = filteredIoTags(p);
+
+  if (!all.length) {
+    return emptyState('🔌', 'لا توجد عناوين مسجلة', 'اضغط "+ إشارة" وسجّل أول عنوان.');
+  }
+  if (!shown.length) {
+    return emptyState('🔎', 'مفيش عناوين مطابقة للبحث', '');
+  }
+
+  return '<div class="table-wrap"><table>' +
+      '<caption class="sr-only">جدول عناوين PLC و SCADA</caption>' +
+      '<thead><tr>' +
+        '<th scope="col">البيان</th><th scope="col">النوع</th>' +
+        '<th scope="col">عنوان PLC</th><th scope="col">عنوان SCADA</th>' +
+        '<th scope="col">ملاحظات</th>' +
+        '<th scope="col"><span class="sr-only">إجراءات</span></th>' +
+      '</tr></thead><tbody>' +
+      shown.map(t =>
+        '<tr>' +
+          '<td>' + esc(t.name || '—') + '</td>' +
+          '<td><span class="badge">' + esc(t.type) + '</span></td>' +
+          '<td dir="ltr" style="font-family:monospace">' + esc(t.plc || '—') + '</td>' +
+          '<td dir="ltr" style="font-family:monospace">' + esc(t.scada || '—') + '</td>' +
+          '<td>' + esc(t.notes || '—') + '</td>' +
+          '<td>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-act="iotag-edit" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(t.id) + '">تعديل</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" data-act="iotag-del" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(t.id) + '">حذف</button>' +
+          '</td>' +
+        '</tr>').join('') +
+    '</tbody></table></div>';
+}
+
+function techPanelHtml(p){
+  const pid  = p.id;
+  const tech = p.tech || {};
+
+  /* ---- المعلومات العامة ---- */
+  const filled = TECH_FIELDS.filter(f => (tech[f.key] || '').trim());
+  const extra  = (tech.extra || []).filter(x => (x.key || '').trim());
+
+  const infoHtml = (filled.length || extra.length || (tech.notes || '').trim())
+    ? '<div class="form-grid">' +
+        filled.map(f =>
+          '<div class="field"><label>' + esc(f.label) + '</label>' +
+            '<div class="li-title" style="font-size:13.5px">' + esc(tech[f.key]) + '</div></div>').join('') +
+        extra.map(x =>
+          '<div class="field"><label>' + esc(x.key) + '</label>' +
+            '<div class="li-title" style="font-size:13.5px">' + esc(x.value || '—') + '</div></div>').join('') +
+      '</div>' +
+      ((tech.notes || '').trim()
+        ? '<div class="li-meta" style="margin-top:8px;white-space:pre-wrap">' + esc(tech.notes) + '</div>'
+        : '')
+    : emptyState('📋', 'لا توجد معلومات عامة', 'اضغط "تعديل البيانات" وسجّل موديل الـ PLC والـ IP وغيره.');
+
+  const all = p.ioTags || [];
+
+  /* البحث بره الجدول عشان إعادة رسم الجدول ماتضيّعش التركيز */
+  const searchHtml = all.length > 8
+    ? '<div class="search-row"><span class="search-input-wrap">' +
+        '<input id="ioTagSearch" type="search" data-pid="' + escAttr(pid) + '" ' +
+        'value="' + escAttr(ioTagQuery) + '" ' +
+        'placeholder="بحث بالبيان أو العنوان..." aria-label="بحث في العناوين"></span></div>'
+    : '';
+
+  /* ---- الكتابة الحرة ---- */
+  const freeHtml = (tech.freeText || '').trim()
+    ? '<div class="li-meta" dir="auto" style="white-space:pre-wrap;font-family:monospace;' +
+        'font-size:13px;line-height:1.9">' + esc(tech.freeText) + '</div>'
+    : emptyState('✍️', 'الصفحة فاضية', 'اضغط "تعديل" واكتب العناوين زي ما تحب.');
+
+  /* ---- مفتاح الوضع: جدول ولا كتابة حرة ---- */
+  const isText = tech.mode === 'text';
+  const modeSeg =
+    '<div class="seg" role="group" aria-label="طريقة تسجيل العناوين">' +
+      '<button type="button" data-act="tech-mode" data-pid="' + escAttr(pid) + '" data-mode="table" ' +
+        'aria-pressed="' + (!isText) + '">📋 جدول</button>' +
+      '<button type="button" data-act="tech-mode" data-pid="' + escAttr(pid) + '" data-mode="text" ' +
+        'aria-pressed="' + isText + '">✍️ كتابة حرة</button>' +
+    '</div>';
+
+  return '<div class="panel">' +
+      '<div class="panel-head"><h3>البيانات الفنية</h3><div class="panel-actions">' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-edit" data-pid="' + escAttr(pid) + '">✎ تعديل البيانات</button>' +
+      '</div></div>' +
+      infoHtml +
+    '</div>' +
+    '<div class="panel">' +
+      '<div class="panel-head"><h3>عناوين PLC / SCADA</h3><div class="panel-actions">' +
+        (isText
+          ? '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-text-edit" data-pid="' + escAttr(pid) + '">✎ تعديل</button>'
+          : '<span class="muted">' + all.length + ' إشارة</span>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-act="iotag-new" data-pid="' + escAttr(pid) + '">+ إشارة</button>') +
+      '</div></div>' +
+      // المفتاح في سطر لوحده — جوه رأس اللوحة بيتزنق على الشاشات الصغيرة
+      '<div style="margin-bottom:12px">' + modeSeg + '</div>' +
+      (isText
+        ? freeHtml
+        : searchHtml + '<div id="ioTagsBody">' + ioTagsTableHtml(p) + '</div>') +
+    '</div>';
+}
+
+/* تبديل الوضع مابيمسحش حاجة — الجدول والكتابة الحرة الاتنين متخزنين،
+   فتقدر ترجع للتاني وتلاقي شغلك زي ما هو. */
+Actions['tech-mode'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  p.tech = p.tech || {};
+  p.tech.mode = el.dataset.mode === 'text' ? 'text' : 'table';
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:p.id } });
+};
+
+Actions['tech-text-edit'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  Modal.open('كتابة حرة — ' + p.name,
+    '<div class="field span-2"><label for="fTechFree">العناوين والملاحظات</label>' +
+      '<textarea id="fTechFree" dir="auto" style="min-height:340px;font-family:monospace;line-height:1.9" ' +
+      'placeholder="اكتب زي ما تحب — مثال:&#10;Q0.0  طلمبة 1 تشغيل   PMP1_RUN&#10;I0.3  طلمبة 1 عطل     PMP1_FLT">' +
+      esc((p.tech && p.tech.freeText) || '') + '</textarea></div>' +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="tech-text-save" data-pid="' + escAttr(p.id) + '">حفظ</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
+    '</div>',
+    { wide:true });
+  const ta = byId('fTechFree');
+  if (ta) ta.focus();
+};
+
+Actions['tech-text-save'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  p.tech = p.tech || {};
+  p.tech.freeText = byId('fTechFree') ? byId('fTechFree').value : '';
+  Data.logActivity('update', 'تعديل العناوين (كتابة حرة): ' + p.name);
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:p.id } });
+  Toast.ok('تم الحفظ');
+};
+
+/* ---------- تعديل المعلومات العامة ---------- */
+function techFormHtml(p){
+  const tech = p.tech || {};
+  return '<div class="form-grid">' +
+      TECH_FIELDS.map(f =>
+        '<div class="field"><label for="fTech_' + f.key + '">' + esc(f.label) + '</label>' +
+          '<input id="fTech_' + f.key + '" value="' + escAttr(tech[f.key] || '') + '" ' +
+          'placeholder="' + escAttr(f.placeholder) + '"></div>').join('') +
+    '</div>' +
+    '<div class="panel-head" style="margin-top:8px"><h3 style="font-size:14px">حقول إضافية</h3>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-extra-add" data-pid="' + escAttr(p.id) + '">+ حقل</button>' +
+    '</div>' +
+    '<div id="techExtraRows">' + techExtraRowsHtml() + '</div>' +
+    '<div class="field span-2"><label for="fTechNotes">ملاحظات فنية</label>' +
+      '<textarea id="fTechNotes" placeholder="أي تفاصيل تانية عن المشروع">' + esc(tech.notes || '') + '</textarea></div>';
+}
+
+function techExtraRowsHtml(){
+  if (!techExtraDraft.length) {
+    return '<div class="li-meta" style="margin-bottom:8px">مفيش حقول إضافية.</div>';
+  }
+  return techExtraDraft.map((x, i) =>
+    '<div class="form-grid" style="margin-bottom:6px">' +
+      '<div class="field"><label for="fTechXK' + i + '">اسم الحقل</label>' +
+        '<input id="fTechXK' + i + '" value="' + escAttr(x.key || '') + '" placeholder="مثال: رقم اللوحة"></div>' +
+      '<div class="field"><label for="fTechXV' + i + '">القيمة</label>' +
+        '<div style="display:flex;gap:8px">' +
+          '<input id="fTechXV' + i + '" value="' + escAttr(x.value || '') + '" style="flex:1">' +
+          '<button type="button" class="btn btn-danger btn-sm" data-act="tech-extra-del" data-idx="' + i + '">حذف</button>' +
+        '</div></div>' +
+    '</div>').join('');
+}
+
+/* بنقرا القيم من الشاشة قبل أي إعادة رسم عشان مايضيعش اللي اتكتب */
+function readTechExtraDraft(){
+  techExtraDraft.forEach((x, i) => {
+    const k = byId('fTechXK' + i), v = byId('fTechXV' + i);
+    if (k) x.key   = k.value;
+    if (v) x.value = v.value;
+  });
+}
+
+Actions['tech-edit'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  techExtraDraft = ((p.tech && p.tech.extra) || []).map(x =>
+    ({ key:x.key || '', value:x.value || '' }));
+
+  Modal.open('البيانات الفنية — ' + p.name,
+    techFormHtml(p) +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="tech-save" data-pid="' + escAttr(p.id) + '">حفظ</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
+    '</div>',
+    { wide:true });
+};
+
+Actions['tech-extra-add'] = function(){
+  readTechExtraDraft();
+  techExtraDraft.push({ key:'', value:'' });
+  setHtml('techExtraRows', techExtraRowsHtml());
+  const last = byId('fTechXK' + (techExtraDraft.length - 1));
+  if (last) last.focus();
+};
+
+Actions['tech-extra-del'] = function(el){
+  readTechExtraDraft();
+  techExtraDraft.splice(+el.dataset.idx, 1);
+  setHtml('techExtraRows', techExtraRowsHtml());
+};
+
+Actions['tech-save'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  readTechExtraDraft();
+
+  p.tech = p.tech || {};
+  TECH_FIELDS.forEach(f => {
+    const input = byId('fTech_' + f.key);
+    if (input) p.tech[f.key] = input.value.trim();
+  });
+  p.tech.notes = byId('fTechNotes') ? byId('fTechNotes').value.trim() : '';
+  // الحقول اللي من غير اسم بتتشال — الاسم هو اللي بيعرّف الحقل
+  p.tech.extra = techExtraDraft
+    .filter(x => (x.key || '').trim())
+    .map(x => ({ id: uid(), key: x.key.trim(), value: (x.value || '').trim() }));
+
+  techExtraDraft = [];
+  Data.logActivity('update', 'تعديل البيانات الفنية: ' + p.name);
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:p.id } });
+  Toast.ok('تم حفظ البيانات الفنية');
+};
+
+/* ---------- عناوين PLC / SCADA ---------- */
+function ioTagFormHtml(t){
+  const types = Object.keys(IO_TYPES).map(k =>
+    '<option value="' + k + '"' + ((t ? t.type === k : k === 'DI') ? ' selected' : '') + '>' +
+      esc(IO_TYPES[k].label) + '</option>').join('');
+
+  return '<div class="form-grid">' +
+      '<div class="field span-2"><label for="fTagName">البيان</label>' +
+        '<input id="fTagName" value="' + escAttr(t ? t.name : '') + '" placeholder="مثال: طلمبة 1 تشغيل"></div>' +
+      '<div class="field"><label for="fTagType">النوع</label>' +
+        '<select id="fTagType">' + types + '</select></div>' +
+      '<div class="field"><label for="fTagPlc">عنوان PLC</label>' +
+        '<input id="fTagPlc" dir="ltr" value="' + escAttr(t ? t.plc : '') + '" placeholder="Q0.0"></div>' +
+      '<div class="field"><label for="fTagScada">عنوان / تاج SCADA</label>' +
+        '<input id="fTagScada" dir="ltr" value="' + escAttr(t ? t.scada : '') + '" placeholder="PMP1_RUN"></div>' +
+      '<div class="field"><label for="fTagNotes">ملاحظات</label>' +
+        '<input id="fTagNotes" value="' + escAttr(t ? (t.notes || '') : '') + '"></div>' +
+    '</div>';
+}
+
+Actions['iotag-new'] = function(el){
+  const pid = el.dataset.pid;
+  Modal.open('إضافة إشارة',
+    ioTagFormHtml(null) +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="iotag-save" data-pid="' + escAttr(pid) + '">إضافة</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="iotag-save" data-pid="' + escAttr(pid) + '" data-again="1">إضافة وتكرار</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(pid) + '">رجوع</button>' +
+    '</div>');
+  if (byId('fTagName')) byId('fTagName').focus();
+};
+
+Actions['iotag-edit'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  const t = (p.ioTags || []).find(x => x.id === el.dataset.id);
+  if (!t) return;
+  Modal.open('تعديل إشارة',
+    ioTagFormHtml(t) +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="iotag-save" data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(t.id) + '">حفظ التعديل</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
+    '</div>');
+};
+
+Actions['iotag-save'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+
+  const name  = byId('fTagName').value.trim();
+  const plc   = byId('fTagPlc').value.trim();
+  const scada = byId('fTagScada').value.trim();
+
+  if (!name && !plc && !scada) {
+    Toast.warn('اكتب البيان أو عنوان على الأقل.');
+    byId('fTagName').focus();
+    return;
+  }
+
+  const payload = {
+    name, plc, scada,
+    type:  byId('fTagType').value,
+    notes: byId('fTagNotes').value.trim()
+  };
+
+  p.ioTags = p.ioTags || [];
+
+  if (el.dataset.id) {
+    const t = p.ioTags.find(x => x.id === el.dataset.id);
+    if (t) Object.assign(t, payload);
+    Data.logActivity('update', 'تعديل إشارة في ' + p.name + ': ' + (name || plc));
+  } else {
+    // تحذير من غير منع — ممكن يكون العنوان متكرر بشكل مقصود
+    if (plc && p.ioTags.some(x => (x.plc || '').toLowerCase() === plc.toLowerCase())) {
+      Toast.warn('عنوان PLC ده مسجل قبل كده في نفس المشروع.');
+    }
+    p.ioTags.push(Object.assign({ id: uid(), created: Date.now() }, payload));
+    Data.logActivity('create', 'إضافة إشارة في ' + p.name + ': ' + (name || plc));
+  }
+
+  renderUI();
+  Data.save().catch(handleSaveError);
+
+  // "إضافة وتكرار" بيفضل في نفس النافذة عشان تدخل عناوين ورا بعض بسرعة
+  if (el.dataset.again && !el.dataset.id) {
+    Actions['iotag-new']({ dataset:{ pid:p.id } });
+    Toast.ok('اتضافت — اكتب اللي بعدها');
+  } else {
+    Actions['project-open']({ dataset:{ id:p.id } });
+    Toast.ok('تم الحفظ');
+  }
+};
+
+Actions['iotag-del'] = async function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  const t = (p.ioTags || []).find(x => x.id === el.dataset.id);
+  if (!t) return;
+  const ok = await confirmAction({
+    title:'حذف الإشارة',
+    message:'هتحذف "' + (t.name || t.plc || 'الإشارة') + '" من المشروع.',
+    confirmLabel:'حذف'
+  });
+  if (!ok) return;
+  p.ioTags = p.ioTags.filter(x => x.id !== t.id);
+  Data.logActivity('delete', 'حذف إشارة من ' + p.name);
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:p.id } });
 };
 
 /* ---------- زيادات الشغل ---------- */
@@ -5976,6 +6382,13 @@ function initEventDelegation(){
     if (el.id === 'projectSearch') { renderProjects(); return; }
     if (el.id === 'txSearch') { txPageSize = 50; renderTransactions(); return; }
     if (el.id === 'acctTxSearch') { renderAccountTx(); return; }
+    if (el.id === 'ioTagSearch') {
+      // بنعيد رسم الجدول بس — لو أعدنا بناء النافذة كلها هيضيع التركيز
+      ioTagQuery = el.value;
+      const p = projectById(el.dataset.pid);
+      if (p) setHtml('ioTagsBody', ioTagsTableHtml(p));
+      return;
+    }
     if (el.id === 'pwNew') {
       const s = Auth.passwordStrength(el.value);
       const out = byId('pwStrength');
