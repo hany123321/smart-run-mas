@@ -53,8 +53,32 @@ MODULES.forEach(m => {
   html = html.replace(new RegExp('\\s*<script src="assets/' + m.replace('.', '\\.') + '"></script>'), '');
 });
 
+/* وسم التهيئة الموجود في الهيكل المصدري — بنتعامل معاه في مكانين تحت */
+const INIT_TAG_RE =
+  /\s*<script>\s*\/\/ تهيئة Firebase قبل أي وحدة بتستخدمه\s*firebase\.initializeApp\(FIREBASE_CONFIG\);\s*<\/script>/;
+
+/* الـ try هنا مهم بعد الدمج: دلوقتي التهيئة في نفس البلوك بتاع باقي الكود،
+   فلو سكريبت Firebase نفسه ما اتحمّلش (نت مقطوع / حجب) الاستثناء كان هيقتل
+   الحزمة كلها وتطلع صفحة فاضية. بالشكل ده Auth.init هيمسك الحالة ويعرض
+   رسالة عربية واضحة. */
+const INIT_CALL =
+  '/* ===== تهيئة Firebase ===== */\n' +
+  'try { firebase.initializeApp(FIREBASE_CONFIG); }\n' +
+  'catch (e) { console.error(\'Firebase init failed\', e); }';
+
+/* ليه بنحقن التهيئة جوه الحزمة؟
+   في الهيكل المصدري كل ملف في وسم <script> لوحده، فـ config.js بيشتغل قبل
+   سطر التهيئة وكل حاجة تمام. لكن الحزمة كلها بتتحط قبل </body>، يعني بعد
+   وسم التهيئة — فكان بينده FIREBASE_CONFIG قبل ما يتعرّف أصلاً ويرمي
+   ReferenceError، وFirebase مايتهيّأش، وبعدين firebase.auth() يفشل و_auth
+   يفضل null لحد ما تسجيل الدخول يرمي "reading 'setPersistence' of null".
+   الحل: التهيئة تيجي جوه الحزمة مباشرة بعد config.js. */
 const bundle = MODULES
-  .map(m => '/* ===== ' + m + ' ===== */\n' + read(m))
+  .map(m => {
+    const code = '/* ===== ' + m + ' ===== */\n' + read(m);
+    // في وضع العرض الـ DEMO_STUB بيستبدل firebase كله، فمش محتاجين التهيئة
+    return (m === 'config.js' && !DEMO) ? code + '\n\n' + INIT_CALL : code;
+  })
   .join('\n\n');
 
 /* ---------- 5) وضع العرض: نستبدل Firebase بنسخة وهمية ---------- */
@@ -147,12 +171,17 @@ if (DEMO) {
   html = html.replace(/\s*<script src="https:\/\/www\.gstatic\.com\/firebasejs[^"]*"><\/script>/g, '');
   html = html.replace(/\s*<link rel="preconnect"[^>]*>/g, '');
   html = html.replace(/\s*<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^"]*">/g, '');
-  html = html.replace(
-    /<script>\s*\/\/ تهيئة Firebase قبل أي وحدة بتستخدمه\s*firebase\.initializeApp\(FIREBASE_CONFIG\);\s*<\/script>/,
-    '<script>' + DEMO_STUB + '</script>'
-  );
+  html = html.replace(INIT_TAG_RE, '\n<script>' + DEMO_STUB + '</script>');
   html = html.replace(/<title>[^<]*<\/title>/,
     '<title>حسابات المهندس — نسخة عرض</title>');
+} else {
+  // التهيئة اتنقلت جوه الحزمة، فبنشيل الوسم من مكانه القديم
+  html = html.replace(INIT_TAG_RE, '');
+}
+
+if (INIT_TAG_RE.test(html)) {
+  console.error('خطأ: وسم تهيئة Firebase لسه موجود في الهيكل — تأكد إن نصه ما اتغيرش.');
+  process.exit(1);
 }
 
 /* ---------- 6) حقن الحزمة ---------- */
@@ -175,6 +204,17 @@ MODULES.forEach(m => {
 });
 if (html.indexOf('<style>') === -1) problems.push('الـ CSS مش مدموج');
 if (DEMO && /gstatic\.com/.test(html)) problems.push('لسه فيه اتصال خارجي في نسخة العرض');
+
+/* الفحص ده هو اللي كان هيمسك عطل "setPersistence of null":
+   لازم firebase.initializeApp ييجي بعد تعريف FIREBASE_CONFIG، وقبل auth.js. */
+const iDef  = html.indexOf('const FIREBASE_CONFIG');
+const iInit = html.indexOf('firebase.initializeApp(FIREBASE_CONFIG)');
+const iAuth = html.indexOf('/* ===== auth.js ===== */');
+if (!DEMO) {
+  if (iInit === -1) problems.push('سطر تهيئة Firebase مش موجود في الناتج');
+  else if (iInit < iDef)  problems.push('تهيئة Firebase بتيجي قبل تعريف FIREBASE_CONFIG');
+  else if (iInit > iAuth) problems.push('تهيئة Firebase بتيجي بعد auth.js');
+}
 
 console.log('تم البناء: dist/' + outName);
 console.log('الحجم    : ' + (fs.statSync(outPath).size / 1024).toFixed(0) + ' كيلوبايت');
