@@ -1,694 +1,1532 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0d1013">
-
-<title>حسابات المهندس — SMART RUN</title>
-<meta name="description" content="نظام إدارة حسابات المشاريع الكهربائية: متابعة المشاريع والمقبوضات والمصروفات والأرباح، وإصدار عروض الأسعار والفواتير وتقارير PDF.">
-<meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="dark light">
-
-<meta property="og:type" content="website">
-<meta property="og:title" content="حسابات المهندس — SMART RUN">
-<meta property="og:description" content="نظام إدارة حسابات المشاريع والمقبوضات والمصروفات والفواتير.">
-<meta property="og:image" content="assets/logo.jpg">
-<meta property="og:locale" content="ar_EG">
-
-<link rel="icon" href="assets/logo.jpg" type="image/jpeg">
-<link rel="apple-touch-icon" href="assets/logo.jpg">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حسابات المهندس ⚡</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="assets/app.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#101315;--panel:#181d21;--panel2:#20262c;--line:#2d353d;
+  --text:#eeeae3;--muted:#8e99a4;--accent:#d58a45;--accent2:#f0b16d;
+  --green:#5fbd8c;--red:#d36d59;--yellow:#e6b84f;--blue:#6ba9df;
+  --shadow:0 12px 35px rgba(0,0,0,.22);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif}
+body{padding-bottom:40px}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app{max-width:1200px;margin:auto;padding:18px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.brand{font-family:Tajawal;font-weight:900;font-size:25px}
+.brand span{color:var(--accent2)}
+.top-actions{display:flex;gap:8px;align-items:center}
+.privacy-toggle{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:8px 12px}
+.privacy-label{font-size:12px;color:var(--muted);white-space:nowrap}
+.privacy-countdown{font-family:'JetBrains Mono';font-size:11px;color:var(--muted);white-space:nowrap;min-width:34px;text-align:center}
+.privacy-switch{position:relative;width:42px;height:24px;background:#303840;border-radius:20px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.privacy-switch .knob{position:absolute;top:3px;right:3px;width:18px;height:18px;background:#8e99a4;border-radius:50%;transition:right .2s,background .2s}
+.privacy-switch.on{background:var(--green)}
+.privacy-switch.on .knob{right:21px;background:#fff}
+@media(max-width:420px){.privacy-toggle{width:100%;justify-content:space-between}}
+.menu-toggle{display:none;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:11px;padding:10px 13px;font-size:16px}
+.icon-btn,.ghost-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);border-radius:11px;padding:10px 13px}
+.icon-btn:hover,.ghost-btn:hover{border-color:var(--accent);color:var(--text)}
+.layout{display:grid;grid-template-columns:230px 1fr;gap:18px}
+.sidebar{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;height:max-content;position:sticky;top:14px}
+.nav-title{font-size:11px;color:var(--muted);padding:8px 10px}
+.nav-btn{width:100%;border:0;background:transparent;color:var(--muted);text-align:right;padding:12px;border-radius:10px;margin-bottom:4px}
+.nav-btn.active,.nav-btn:hover{background:var(--panel2);color:var(--accent2)}
+.content{min-width:0}
+.page{display:none}.page.active{display:block}
+.page-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.page-head h2{font-family:Tajawal;margin:0;font-size:23px}
+.page-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.primary{background:var(--accent);color:#1b1208;border:0;border-radius:10px;padding:11px 16px;font-weight:800}
+.primary:hover{background:var(--accent2)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.card{background:linear-gradient(180deg,var(--panel),#15191c);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.card .label{color:var(--muted);font-size:12px;margin-bottom:8px}
+.card .value{font-family:'JetBrains Mono';font-size:24px;font-weight:700;direction:ltr;text-align:right}
+.card .value.green{color:var(--green)}.card .value.red{color:var(--red)}.card .value.yellow{color:var(--yellow)}.card .value.blue{color:var(--blue)}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.panel-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.panel-title h3{font-family:Tajawal;margin:0;font-size:16px}
+.small{font-size:12px;color:var(--muted)}
+.project-card{border:1px solid var(--line);background:var(--panel2);border-radius:13px;padding:14px;margin-bottom:9px;border-inline-start-width:5px;border-inline-start-style:solid}
+.color-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.color-dot{width:26px;height:26px;border-radius:50%;display:inline-block;cursor:pointer;border:2px solid transparent}
+.color-dot.selected{border-color:var(--text);box-shadow:0 0 0 2px var(--panel2)}
+.project-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:7px;flex-shrink:0;vertical-align:middle}
+.quote-item-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.quote-item-row input{flex:2}
+.quote-item-row input.qty,.quote-item-row input.price{flex:1}
+.quote-item-row .row-total{flex:1.2;font-family:'JetBrains Mono';direction:ltr;text-align:left;color:var(--muted);font-size:13px;white-space:nowrap}
+.quote-item-row button{flex:0 0 auto;background:transparent;color:var(--red);border:0;font-size:18px;padding:4px 8px}
+.quote-totals{display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.quote-totals .row{display:flex;justify-content:space-between;font-size:14px}
+.quote-totals .row.grand{font-weight:800;font-size:17px;color:var(--accent2)}
+.project-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.project-name{font-family:Tajawal;font-weight:800}
+.project-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.project-balance{font-family:'JetBrains Mono';font-weight:700;direction:ltr}
+.progress{height:6px;background:#303840;border-radius:5px;overflow:hidden;margin-top:11px}
+.progress span{display:block;height:100%;background:var(--accent);border-radius:5px}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;font-size:11px;background:#293038;color:var(--muted)}
+.badge.green{color:var(--green);background:rgba(95,189,140,.12)}
+.badge.red{color:var(--red);background:rgba(211,109,89,.12)}
+.badge.yellow{color:var(--yellow);background:rgba(230,184,79,.12)}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:right;font-size:13px}
+th{color:var(--muted);font-weight:500}
+.amount{font-family:'JetBrains Mono';direction:ltr;text-align:right;font-weight:700}
+.amount.in{color:var(--green)}.amount.out{color:var(--red)}
+.empty{text-align:center;padding:30px;color:var(--muted)}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{min-height:80px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.form-group label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal.show{display:flex}
+.modal-box{width:min(620px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-head h3{font-family:Tajawal;margin:0}
+.close{background:none;border:0;color:var(--muted);font-size:22px}
+.form-actions{display:flex;gap:8px;justify-content:flex-start;margin-top:16px}
+.lock-screen{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:50}
+.lock-box{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;text-align:center}
+.lock-box h2{margin:0 0 18px;font-family:Tajawal}
+.lock-box input{width:100%;margin-bottom:12px}
+.lock-box .lock-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
+.danger{background:transparent;color:var(--red);border:1px solid rgba(211,109,89,.4);border-radius:9px;padding:9px 13px}
+.tx-type{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
+.tx-type button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:9px 5px;border-radius:8px;font-size:12px}
+.tx-type button.active{border-color:var(--accent);color:var(--accent2);background:rgba(213,138,69,.1)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#293038;color:var(--text);padding:10px 15px;border-radius:9px;opacity:0;pointer-events:none;transition:.25s;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.sync-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);padding:8px 4px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--yellow)}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.gallery-item{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column}
+.gallery-item .gallery-img-wrap{position:relative;aspect-ratio:1/1}
+.gallery-item img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
+.gallery-item .gallery-del{position:absolute;top:6px;left:6px;background:rgba(20,20,20,.75);color:var(--red);border:0;border-radius:8px;padding:4px 8px;font-size:11px}
+.gallery-caption{border:0;border-top:1px solid var(--line);border-radius:0;background:var(--panel);font-size:12px;padding:8px 10px}
+.public-gallery{min-height:100vh;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans Arabic',sans-serif;padding:24px}
+.public-gallery .pg-header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.public-gallery .pg-logo{width:64px;height:64px;border-radius:50%;object-fit:contain}
+.public-gallery h1{font-family:Tajawal;margin:0;font-size:22px}
+.public-gallery .pg-sub{color:var(--muted);font-size:13px;margin-top:4px}
+.public-gallery .pg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.public-gallery .pg-card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.public-gallery .pg-grid img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;cursor:pointer}
+.public-gallery .pg-caption{padding:9px 11px;font-size:13px;color:var(--text);line-height:1.5}
+.pg-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.pg-lightbox.show{display:flex}
+.pg-lightbox img{max-width:100%;max-height:80vh;border-radius:10px;display:block;margin:auto}
+.pg-lightbox-caption{color:#fff;text-align:center;margin-top:12px;font-size:15px;max-width:600px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.menu-toggle{display:inline-flex}.sidebar{position:static;display:none;overflow:auto;gap:5px}.sidebar.open{display:flex}.nav-title{display:none}.nav-btn{min-width:max-content;margin:0}.cards{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
+@media(max-width:520px){.app{padding:12px}.brand{font-size:20px}.cards{gap:8px}.card{padding:12px}.card .value{font-size:19px}.form-grid{grid-template-columns:1fr}.tx-type{grid-template-columns:repeat(3,1fr)}.page-head{align-items:flex-start;flex-direction:column}}
+@media(max-width:420px){.topbar{flex-direction:column;align-items:flex-start}.top-actions{width:100%;justify-content:stretch;flex-wrap:wrap}.top-actions button{flex:1 1 100%;min-width:0}.sidebar{position:static;display:none}.sidebar.open{display:block}.nav-btn{width:100%;text-align:right;padding:12px}.cards{grid-template-columns:1fr}.project-row{flex-direction:column;align-items:flex-start}.project-row > div:last-child{margin-top:10px}.panel-title{flex-direction:column;align-items:flex-start;gap:10px}.table-wrap{overflow-x:auto}.table-wrap table{min-width:auto}.th,td{font-size:12px}.project-card{padding:12px}.modal-box{padding:16px}.lock-box{padding:20px}}</style>
 </head>
 <body>
-
-<a class="skip-link" href="#mainContent">تخطي إلى المحتوى الرئيسي</a>
-
-<!-- ============================================================
-     شاشة تسجيل الدخول
-     ============================================================ -->
-<div class="auth-screen" id="authScreen">
-  <div class="auth-card" id="authCard">
-
-    <div class="auth-brand">
-      <img src="assets/logo.jpg" alt="شعار SMART RUN" width="66" height="66">
-      <div>
-        <h1>حسابات <em>المهندس</em></h1>
-        <p class="auth-sub">SMART RUN — نظام إدارة الحسابات</p>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">حسابات <span>المهندس ⚡</span></div>
+    <div class="top-actions">
+      <button class="menu-toggle" id="menuToggle" title="القائمة">☰</button>
+      <div class="privacy-toggle" title="إظهار/إخفاء الأرقام">
+        <span class="privacy-label">إظهار الأرقام</span>
+        <span class="privacy-switch" id="privacySwitch" onclick="togglePrivacy()"><span class="knob"></span></span>
+        <span class="privacy-countdown" id="privacyCountdown"></span>
       </div>
+      <button class="ghost-btn" id="exportBtn">تصدير البيانات</button>
+      <button class="icon-btn" id="resetBtn" title="مسح كل البيانات">⟲</button>
     </div>
+  </header>
+  <div class="sync-badge"><span class="sync-dot" id="syncDot"></span><span id="syncText">جاري الاتصال بالسحابة...</span></div>
 
-    <!-- تسجيل الدخول -->
-    <section class="auth-view active" data-view="login">
-      <form class="auth-form" id="loginForm" novalidate>
-        <div class="field">
-          <label for="loginUser">اسم المستخدم</label>
-          <input id="loginUser" name="username" type="text" dir="ltr"
-                 autocomplete="username" autocapitalize="none" spellcheck="false"
-                 placeholder="اسم المستخدم أو البريد الإلكتروني" required>
-          <span class="err" id="loginUserErr" role="alert"></span>
-        </div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="nav-title">القائمة الرئيسية</div>
+      <button class="nav-btn active" data-page="dashboard">📊 لوحة التحكم</button>
+      <button class="nav-btn" data-page="projects">🏗️ المشاريع</button>
+      <button class="nav-btn" data-page="clients">👥 العملاء</button>
+      <button class="nav-btn" data-page="suppliers">📦 الموردين</button>
+      <button class="nav-btn" data-page="transactions">💰 كل الحركات</button>
+      <button class="nav-btn" data-page="reports">📈 التقارير</button>
+      <button class="nav-btn" data-page="quotes">🧾 عرض سعر</button>
+      <button class="nav-btn" data-page="invoices">🧾 الفواتير</button>
+      <button class="nav-btn" data-page="extinvoices">🧾 فاتورة خارجية</button>
+      <button class="nav-btn" data-page="portfolio">🖼️ سابقة أعمال</button>
+    </aside>
 
-        <div class="field">
-          <label for="loginPass">كلمة المرور</label>
-          <div class="pw-wrap">
-            <input id="loginPass" name="password" type="password" dir="ltr"
-                   autocomplete="current-password" placeholder="••••••••" required>
-            <button type="button" class="pw-toggle" data-target="loginPass"
-                    aria-label="إظهار كلمة المرور">👁️</button>
-          </div>
-          <span class="err" id="loginPassErr" role="alert"></span>
-        </div>
-
-        <div class="auth-row">
-          <label class="checkbox" for="loginRemember">
-            <input type="checkbox" id="loginRemember" checked>
-            <span>تذكرني على هذا الجهاز</span>
-          </label>
-          <button type="button" class="auth-link" data-auth-view="reset">نسيت كلمة المرور؟</button>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-block" id="loginBtn">تسجيل الدخول</button>
-        <p class="auth-msg" id="authMsg" role="alert" aria-live="polite"></p>
-      </form>
-    </section>
-
-    <!-- استعادة كلمة المرور -->
-    <section class="auth-view" data-view="reset">
-      <form class="auth-form" id="resetForm" novalidate>
-        <div class="alert alert-info">
-          <span class="alert-icon" aria-hidden="true">✉️</span>
-          <div>اكتب اسم المستخدم أو البريد وهنبعتلك رابط لإعادة تعيين كلمة المرور.</div>
-        </div>
-        <div class="field">
-          <label for="resetUser">اسم المستخدم أو البريد</label>
-          <input id="resetUser" type="text" dir="ltr" autocomplete="username"
-                 autocapitalize="none" spellcheck="false" placeholder="name@example.com">
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" id="resetBtn">إرسال رابط الاستعادة</button>
-        <p class="auth-msg" id="resetMsg" role="alert" aria-live="polite"></p>
-        <button type="button" class="auth-link" data-auth-view="login">← رجوع لتسجيل الدخول</button>
-      </form>
-    </section>
-
-    <p class="auth-foot">
-      الجلسة محمية بـ Firebase Authentication — كلمة المرور مشفّرة على الخادم ولا تُخزَّن في المتصفح.
-    </p>
-  </div>
-</div>
-
-<!-- ============================================================
-     التطبيق
-     ============================================================ -->
-<div class="app" id="appRoot" hidden>
-
-  <!-- القائمة الجانبية -->
-  <aside class="sidebar" id="sidebar" aria-label="القائمة الرئيسية">
-    <div class="sidebar-brand">
-      <img src="assets/logo.jpg" alt="" width="38" height="38">
-      <div>
-        <div class="brand-name">حسابات <em>المهندس</em></div>
-        <div class="brand-sub">SMART RUN</div>
-      </div>
-    </div>
-
-    <nav class="sidebar-nav">
-      <div class="nav-group-title">الرئيسية</div>
-      <button type="button" class="nav-btn" data-page="dashboard" aria-current="page">
-        <span class="nav-icon" aria-hidden="true">📊</span><span>لوحة التحكم</span></button>
-      <button type="button" class="nav-btn" data-page="projects">
-        <span class="nav-icon" aria-hidden="true">🏗️</span><span>المشاريع</span><span class="nav-badge"></span></button>
-      <button type="button" class="nav-btn" data-page="transactions">
-        <span class="nav-icon" aria-hidden="true">💰</span><span>كل الحركات</span><span class="nav-badge"></span></button>
-      <button type="button" class="nav-btn" data-page="reports">
-        <span class="nav-icon" aria-hidden="true">📈</span><span>التقارير</span></button>
-
-      <div class="nav-group-title">جهات التعامل</div>
-      <button type="button" class="nav-btn" data-page="clients">
-        <span class="nav-icon" aria-hidden="true">👥</span><span>العملاء</span><span class="nav-badge"></span></button>
-      <button type="button" class="nav-btn" data-page="suppliers">
-        <span class="nav-icon" aria-hidden="true">📦</span><span>الموردين</span><span class="nav-badge"></span></button>
-
-      <div class="nav-group-title">المستندات</div>
-      <button type="button" class="nav-btn" data-page="quotes">
-        <span class="nav-icon" aria-hidden="true">🧾</span><span>عروض الأسعار</span><span class="nav-badge"></span></button>
-      <button type="button" class="nav-btn" data-page="invoices">
-        <span class="nav-icon" aria-hidden="true">📃</span><span>الفواتير</span><span class="nav-badge"></span></button>
-      <button type="button" class="nav-btn" data-page="extInvoices">
-        <span class="nav-icon" aria-hidden="true">📄</span><span>فاتورة خارجية</span><span class="nav-badge"></span></button>
-      <button type="button" class="nav-btn" data-page="portfolio">
-        <span class="nav-icon" aria-hidden="true">🖼️</span><span>سابقة أعمال</span><span class="nav-badge"></span></button>
-
-      <div class="nav-group-title">النظام</div>
-      <button type="button" class="nav-btn" data-page="activity">
-        <span class="nav-icon" aria-hidden="true">🕒</span><span>سجل النشاط</span></button>
-      <button type="button" class="nav-btn" data-page="users">
-        <span class="nav-icon" aria-hidden="true">🔑</span><span>إدارة المستخدمين</span></button>
-      <button type="button" class="nav-btn" data-page="settings">
-        <span class="nav-icon" aria-hidden="true">⚙️</span><span>الإعدادات</span></button>
-    </nav>
-
-    <div class="sidebar-foot">
-      <button type="button" class="user-chip" data-act="nav-profile" id="userChip">
-        <span class="user-avatar" id="chipInitial" aria-hidden="true">?</span>
-        <span class="u-text">
-          <span class="u-name" id="chipName">—</span>
-          <span class="u-mail" id="chipEmail"></span>
-        </span>
-      </button>
-      <button type="button" class="btn btn-subtle btn-block" data-act="sign-out" style="margin-top:6px">
-        <span aria-hidden="true">🚪</span> تسجيل الخروج
-      </button>
-    </div>
-  </aside>
-
-  <div class="scrim" id="scrim"></div>
-
-  <!-- المحتوى -->
-  <div class="main">
-    <header class="topbar">
-      <button type="button" class="btn btn-ghost btn-icon menu-toggle" id="menuToggle"
-              aria-label="فتح القائمة" aria-expanded="false" aria-controls="sidebar">☰</button>
-
-      <h1 class="topbar-title" id="topbarTitle">لوحة التحكم</h1>
-
-      <div class="sync-pill" id="syncPill" data-state="connecting">
-        <span class="sync-dot" aria-hidden="true"></span>
-        <span class="sync-text" id="syncText">جاري الاتصال...</span>
-      </div>
-
-      <div class="privacy-toggle">
-        <span class="p-label" id="privacyLabel">إظهار الأرقام</span>
-        <span class="privacy-countdown" id="privacyCountdown" aria-live="off"></span>
-        <button type="button" class="switch" id="privacySwitch" role="switch"
-                aria-checked="false" aria-labelledby="privacyLabel" data-act="toggle-privacy">
-          <span class="knob"></span>
-        </button>
-      </div>
-
-      <button type="button" class="btn btn-ghost btn-icon" id="themeToggle"
-              data-act="toggle-theme" aria-label="تبديل السمة">🌙</button>
-    </header>
-
-    <main class="page-wrap" id="mainContent" tabindex="-1">
-
-      <!-- ===== لوحة التحكم ===== -->
-      <section class="page active" id="page-dashboard" aria-labelledby="h-dashboard">
+    <main class="content">
+      <section class="page active" id="page-dashboard">
         <div class="page-head">
-          <div>
-            <h2 id="h-dashboard">لوحة التحكم</h2>
-            <p class="page-sub">نظرة سريعة على حسابات شغلك ومشاريعك</p>
-          </div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="project-new">+ مشروع جديد</button>
-            <button type="button" class="btn btn-ghost" data-act="tx-new">+ حركة</button>
-          </div>
+          <div><h2>لوحة التحكم</h2><p>نظرة سريعة على حسابات شغلك ومشاريعك</p></div>
+          <button class="primary" onclick="openProjectModal()">+ مشروع جديد</button>
         </div>
-
-        <div class="stat-grid">
-          <div class="stat-card is-violet">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">⚖️</span>
-              <span class="stat-label">صافي الرصيد</span></div>
-            <div class="stat-value" id="statBalance">—</div>
-            <div class="stat-foot" id="statBalanceFoot"></div>
-          </div>
-          <div class="stat-card is-green">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">📥</span>
-              <span class="stat-label">المستحق لك</span></div>
-            <div class="stat-value green" id="statReceivable">—</div>
-            <div class="stat-foot" id="statReceivableFoot"></div>
-          </div>
-          <div class="stat-card is-red">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">📤</span>
-              <span class="stat-label">المستحق عليك</span></div>
-            <div class="stat-value red" id="statPayable">—</div>
-            <div class="stat-foot" id="statPayableFoot"></div>
-          </div>
-          <div class="stat-card is-yellow">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">💎</span>
-              <span class="stat-label">صافي الربح</span></div>
-            <div class="stat-value yellow" id="statProfit">—</div>
-            <div class="stat-foot" id="statProfitFoot"></div>
-          </div>
+        <div class="cards">
+          <div class="card"><div class="label">صافي الرصيد</div><div class="value" id="statBalance">0</div></div>
+          <div class="card"><div class="label">المستحق لك</div><div class="value green" id="statReceivable">0</div></div>
+          <div class="card"><div class="label">المستحق عليك</div><div class="value red" id="statPayable">0</div></div>
+          <div class="card"><div class="label">صافي الربح</div><div class="value yellow" id="statProfit">0</div></div>
         </div>
-
-        <div class="grid-2">
-          <div class="chart-card">
-            <div class="panel-head"><h3>المقبوضات مقابل المصروفات</h3>
-              <span class="muted">آخر 6 شهور</span></div>
-            <div id="monthlyChart"></div>
-            <div class="chart-legend">
-              <span class="lg"><span class="lg-swatch" style="background:var(--green)"></span>مقبوضات</span>
-              <span class="lg"><span class="lg-swatch" style="background:var(--red)"></span>مصروفات</span>
-            </div>
-          </div>
-          <div class="chart-card">
-            <div class="panel-head"><h3>توزيع التكاليف</h3></div>
-            <div id="costsDonut"></div>
-          </div>
-        </div>
-
-        <div class="grid-2">
+        <div class="grid2">
           <div class="panel">
-            <div class="panel-head"><h3>المشاريع النشطة</h3>
-              <span class="muted" id="projectCount"></span></div>
+            <div class="panel-title"><h3>المشاريع النشطة</h3><span class="small" id="projectCount"></span></div>
             <div id="dashboardProjects"></div>
           </div>
-          <div>
-            <div class="panel">
-              <div class="panel-head"><h3>أعلى المشاريع ربحاً</h3></div>
-              <div id="topProjectsChart"></div>
-            </div>
-            <div class="panel">
-              <div class="panel-head"><h3>آخر الحركات</h3></div>
-              <div id="recentTransactions"></div>
-            </div>
+          <div class="panel">
+            <div class="panel-title"><h3>آخر الحركات</h3></div>
+            <div id="recentTransactions"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== المشاريع ===== -->
-      <section class="page" id="page-projects" aria-labelledby="h-projects">
+      <section class="page" id="page-projects">
         <div class="page-head">
-          <div><h2 id="h-projects">المشاريع</h2>
-            <p class="page-sub">تابع كل مشروع ومقبوضاته ومصروفاته وربحه</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="project-new">+ إضافة مشروع</button>
-          </div>
+          <div><h2>المشاريع</h2><p>تابع كل مشروع ومقبوضاته ومصروفاته وربحه</p></div>
+          <button class="primary" onclick="openProjectModal()">+ إضافة مشروع</button>
         </div>
-        <div class="search-row">
-          <span class="search-input-wrap">
-            <input id="projectSearch" type="search" placeholder="بحث باسم المشروع أو العميل..."
-                   aria-label="بحث في المشاريع">
-          </span>
-        </div>
+        <div class="search-row"><input id="projectSearch" placeholder="بحث باسم المشروع أو العميل..."></div>
         <div id="projectsPageList"></div>
       </section>
 
-      <!-- ===== العملاء ===== -->
-      <section class="page" id="page-clients" aria-labelledby="h-clients">
-        <div class="page-head">
-          <div><h2 id="h-clients">العملاء</h2>
-            <p class="page-sub">الأرصدة والمبالغ المستحقة من العملاء</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="contact-new" data-kind="client">+ عميل جديد</button>
-          </div>
-        </div>
+      <section class="page" id="page-clients">
+        <div class="page-head"><div><h2>العملاء</h2><p>الأرصدة والمبالغ المستحقة من العملاء</p></div><button class="primary" onclick="openContactModal('client')">+ عميل جديد</button></div>
         <div id="clientsList"></div>
       </section>
 
-      <!-- ===== الموردين ===== -->
-      <section class="page" id="page-suppliers" aria-labelledby="h-suppliers">
-        <div class="page-head">
-          <div><h2 id="h-suppliers">الموردين</h2>
-            <p class="page-sub">المشتريات والمبالغ المستحقة للموردين</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="contact-new" data-kind="supplier">+ مورد جديد</button>
-          </div>
-        </div>
+      <section class="page" id="page-suppliers">
+        <div class="page-head"><div><h2>الموردين</h2><p>المشتريات والمبالغ المستحقة للموردين</p></div><button class="primary" onclick="openContactModal('supplier')">+ مورد جديد</button></div>
         <div id="suppliersList"></div>
       </section>
 
-      <!-- ===== الحركات ===== -->
-      <section class="page" id="page-transactions" aria-labelledby="h-transactions">
-        <div class="page-head">
-          <div><h2 id="h-transactions">كل الحركات</h2>
-            <p class="page-sub">سجل كامل لكل قبض ومصروف ومشتريات ومصنعية</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="tx-new">+ إضافة حركة</button>
-          </div>
-        </div>
-
-        <div class="search-row">
-          <span class="search-input-wrap">
-            <input id="txSearch" type="search" placeholder="بحث بالبيان أو الطرف أو المشروع..."
-                   aria-label="بحث في الحركات">
-          </span>
-          <select id="txFilterType" aria-label="تصفية حسب النوع" style="max-width:200px">
-            <option value="">كل الأنواع</option>
-            <option value="payment">دفعة من العميل</option>
-            <option value="purchase">بضاعة / مشتريات</option>
-            <option value="labor">مصنعية</option>
-            <option value="expense">مصروفات</option>
-            <option value="withdrawal">سحب شخصي</option>
-          </select>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h3>الحركات</h3><span class="muted" id="txCount"></span></div>
-          <div class="table-wrap">
-            <table>
-              <caption class="sr-only">جدول كل الحركات المالية</caption>
-              <thead><tr>
-                <th scope="col">التاريخ</th><th scope="col">النوع</th><th scope="col">البيان</th>
-                <th scope="col">المشروع</th><th scope="col">الطرف</th><th scope="col">المبلغ</th>
-                <th scope="col">فاتورة</th><th scope="col"><span class="sr-only">إجراءات</span></th>
-              </tr></thead>
-              <tbody id="allTransactions"></tbody>
-            </table>
-          </div>
-          <div id="txMore" style="margin-top:12px"></div>
-        </div>
+      <section class="page" id="page-transactions">
+        <div class="page-head"><div><h2>كل الحركات</h2><p>سجل كامل لكل قبض ومصروف ومشتريات ومصنعية</p></div><button class="primary" onclick="openTransactionModal()">+ إضافة حركة</button></div>
+        <div class="panel"><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>المشروع</th><th>الطرف</th><th>المبلغ</th><th>فاتورة</th><th></th></tr></thead><tbody id="allTransactions"></tbody></table></div></div>
       </section>
 
-      <!-- ===== التقارير ===== -->
-      <section class="page" id="page-reports" aria-labelledby="h-reports">
-        <div class="page-head">
-          <div><h2 id="h-reports">التقارير</h2>
-            <p class="page-sub">ملخص مالي سريع حسب نوع الحركة</p></div>
+      <section class="page" id="page-reports">
+        <div class="page-head"><div><h2>التقارير</h2><p>ملخص مالي سريع حسب نوع الحركة</p></div></div>
+        <div class="cards">
+          <div class="card"><div class="label">إجمالي المقبوضات</div><div class="value green" id="repPayments">0</div></div>
+          <div class="card"><div class="label">إجمالي البضاعة</div><div class="value red" id="repPurchases">0</div></div>
+          <div class="card"><div class="label">إجمالي المصنعية</div><div class="value red" id="repLabor">0</div></div>
+          <div class="card"><div class="label">إجمالي المصروفات</div><div class="value red" id="repExpenses">0</div></div>
         </div>
-
-        <div class="stat-grid">
-          <div class="stat-card is-green">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">💵</span>
-              <span class="stat-label">إجمالي المقبوضات</span></div>
-            <div class="stat-value green" id="repPayments">—</div></div>
-          <div class="stat-card is-red">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">📦</span>
-              <span class="stat-label">إجمالي البضاعة</span></div>
-            <div class="stat-value red" id="repPurchases">—</div></div>
-          <div class="stat-card is-yellow">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">🔧</span>
-              <span class="stat-label">إجمالي المصنعية</span></div>
-            <div class="stat-value yellow" id="repLabor">—</div></div>
-          <div class="stat-card is-violet">
-            <div class="stat-head"><span class="stat-icon" aria-hidden="true">🧾</span>
-              <span class="stat-label">إجمالي المصروفات</span></div>
-            <div class="stat-value" id="repExpenses">—</div></div>
-        </div>
-
-        <div class="chart-card">
-          <div class="panel-head"><h3>الحركة الشهرية</h3><span class="muted">آخر 12 شهر</span></div>
-          <div id="reportsMonthlyChart"></div>
-          <div class="chart-legend">
-            <span class="lg"><span class="lg-swatch" style="background:var(--green)"></span>مقبوضات</span>
-            <span class="lg"><span class="lg-swatch" style="background:var(--red)"></span>مصروفات</span>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h3>ملخص المشاريع</h3></div>
-          <div class="table-wrap">
-            <table>
-              <caption class="sr-only">ملخص مالي لكل مشروع</caption>
-              <thead><tr>
-                <th scope="col">المشروع</th><th scope="col">المقبوض</th><th scope="col">التكاليف</th>
-                <th scope="col">الربح</th><th scope="col">المتبقي</th>
-              </tr></thead>
-              <tbody id="reportProjects"></tbody>
-            </table>
-          </div>
-        </div>
+        <div class="panel"><div class="panel-title"><h3>ملخص المشاريع</h3></div><div class="table-wrap"><table><thead><tr><th>المشروع</th><th>المقبوض</th><th>التكاليف</th><th>الربح</th><th>المتبقي</th></tr></thead><tbody id="reportProjects"></tbody></table></div></div>
       </section>
 
-      <!-- ===== عروض الأسعار ===== -->
-      <section class="page" id="page-quotes" aria-labelledby="h-quotes">
-        <div class="page-head">
-          <div><h2 id="h-quotes">عروض الأسعار</h2>
-            <p class="page-sub">اعمل عرض سعر للعميل بالمكونات وعددها وسعرها + تكلفة العمل</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="doc-new" data-kind="quote">+ عرض سعر جديد</button>
-          </div>
-        </div>
+      <section class="page" id="page-quotes">
+        <div class="page-head"><div><h2>عروض الأسعار</h2><p>اعمل عرض سعر للعميل بالمكونات وعددها وسعرها + تكلفة العمل</p></div><button class="primary" onclick="openQuoteModal()">+ عرض سعر جديد</button></div>
         <div id="quotesList"></div>
       </section>
 
-      <!-- ===== الفواتير ===== -->
-      <section class="page" id="page-invoices" aria-labelledby="h-invoices">
-        <div class="page-head">
-          <div><h2 id="h-invoices">الفواتير</h2>
-            <p class="page-sub">فاتورة رسمية للعميل برقم متسلسل تلقائي</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="doc-new" data-kind="invoice">+ فاتورة جديدة</button>
-          </div>
-        </div>
+      <section class="page" id="page-invoices">
+        <div class="page-head"><div><h2>الفواتير</h2><p>اعمل فاتورة رسمية للعميل برقم متسلسل تلقائي</p></div><button class="primary" onclick="openInvoiceModal()">+ فاتورة جديدة</button></div>
         <div id="invoicesList"></div>
       </section>
 
-      <!-- ===== الفواتير الخارجية ===== -->
-      <section class="page" id="page-extInvoices" aria-labelledby="h-ext">
-        <div class="page-head">
-          <div><h2 id="h-ext">فاتورة خارجية</h2>
-            <p class="page-sub">فاتورة بسيطة من غير شعار أو بيانات شركة، بلون مختلف كل مرة</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="doc-new" data-kind="extInvoice">+ فاتورة خارجية</button>
-          </div>
-        </div>
+      <section class="page" id="page-extinvoices">
+        <div class="page-head"><div><h2>فاتورة خارجية</h2><p>فاتورة بسيطة من غير شعار أو بيانات شركة، بلون مختلف كل مرة</p></div><button class="primary" onclick="openExtInvoiceModal()">+ فاتورة خارجية جديدة</button></div>
         <div id="extInvoicesList"></div>
       </section>
 
-      <!-- ===== سابقة الأعمال ===== -->
-      <section class="page" id="page-portfolio" aria-labelledby="h-portfolio">
-        <div class="page-head">
-          <div><h2 id="h-portfolio">سابقة أعمال</h2>
-            <p class="page-sub">ارفع صور شغلك، والعميل يقدر يشوفها من رابط مباشر</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="portfolio-upload">+ إضافة صور</button>
-          </div>
-        </div>
-
-        <input type="file" id="portfolioFileInput" accept="image/*" multiple hidden>
-
-        <div class="panel">
-          <div class="panel-head"><h3>رابط المعرض للعميل</h3></div>
-          <p class="muted" style="margin-bottom:12px">
-            ابعت الرابط ده لأي عميل عشان يشوف صور شغلك من غير كلمة مرور.
-          </p>
-
-          <div class="alert alert-warn" id="portfolioLocalWarning" hidden>
-            <span class="alert-icon" aria-hidden="true">⚠️</span>
-            <div>الرابط ده مش هيشتغل عند العميل لأنك فاتح الصفحة كملف على الجهاز.
-              لازم تنشر التطبيق على استضافة وتفتحه من الرابط بتاعها.</div>
-          </div>
-
+      <section class="page" id="page-portfolio">
+        <div class="page-head"><div><h2>سابقة أعمال</h2><p>ارفع صور شغلك، والعميل يقدر يشوفها من رابط مباشر (من غير كلمة مرور)</p></div><button class="primary" onclick="triggerPortfolioUpload()">+ إضافة صور</button></div>
+        <input type="file" id="portfolioFileInput" accept="image/*" multiple style="display:none">
+        <div class="panel" id="portfolioLinkBox">
+          <div class="panel-title"><h3>رابط المعرض للعميل</h3></div>
+          <div class="small" style="margin-bottom:10px">ابعت الرابط ده لأي عميل، أو هيتحط أوتوماتيك في أي عرض سعر تطبعه</div>
+          <div id="portfolioLocalWarning" style="display:none;background:rgba(211,109,89,.12);color:var(--red);border:1px solid rgba(211,109,89,.4);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px;font-weight:700">⚠️ الرابط ده مش هيشتغل عند العميل لأنك فاتح الصفحة كملف على الجهاز مش من موقع منشور. لازم تنشر التطبيق على استضافة (زي Firebase Hosting) وتفتحه من الرابط بتاعها عشان الزرار يشتغل مع العملاء.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <input id="portfolioLinkText" readonly dir="ltr" style="flex:1;min-width:220px"
-                   aria-label="رابط المعرض العام">
-            <button type="button" class="btn btn-ghost" data-act="portfolio-copy-link">نسخ الرابط</button>
+            <input id="portfolioLinkText" readonly style="flex:1;min-width:220px">
+            <button class="ghost-btn" onclick="copyPortfolioLink()">نسخ الرابط</button>
           </div>
-
-          <div class="storage-meter" id="storageMeter"></div>
         </div>
-
         <div class="gallery-grid" id="portfolioGrid"></div>
       </section>
-
-      <!-- ===== سجل النشاط ===== -->
-      <section class="page" id="page-activity" aria-labelledby="h-activity">
-        <div class="page-head">
-          <div><h2 id="h-activity">سجل النشاط</h2>
-            <p class="page-sub">كل إضافة وتعديل وحذف تم في النظام</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-danger" data-act="activity-clear">مسح السجل</button>
-          </div>
-        </div>
-        <div class="panel"><div id="activityFeed"></div></div>
-      </section>
-
-      <!-- ===== إدارة المستخدمين ===== -->
-      <section class="page" id="page-users" aria-labelledby="h-users">
-        <div class="page-head">
-          <div><h2 id="h-users">إدارة المستخدمين</h2>
-            <p class="page-sub">مين له صلاحية الدخول للنظام</p></div>
-          <div class="page-head-actions">
-            <button type="button" class="btn btn-primary" data-act="user-add">+ إضافة مستخدم</button>
-          </div>
-        </div>
-
-        <div class="alert alert-info">
-          <span class="alert-icon" aria-hidden="true">🔐</span>
-          <div>حسابات الدخول الفعلية بتتدار من <strong>Firebase Console ← Authentication ← Users</strong>.
-            الصفحة دي بتوثّق مين المفروض يكون له صلاحية وبتوريك حسابك الحالي.</div>
-        </div>
-
-        <div class="panel"><div id="usersList"></div></div>
-      </section>
-
-      <!-- ===== الملف الشخصي ===== -->
-      <section class="page" id="page-profile" aria-labelledby="h-profile">
-        <div class="page-head">
-          <div><h2 id="h-profile">الملف الشخصي</h2>
-            <p class="page-sub">بيانات حسابك وكلمة المرور</p></div>
-        </div>
-
-        <div class="grid-halves">
-          <div class="panel">
-            <div class="panel-head"><h3>بيانات الحساب</h3></div>
-            <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
-              <span class="user-avatar" id="profileInitial" style="width:56px;height:56px;font-size:22px">?</span>
-              <div>
-                <div class="li-title" id="profileName">—</div>
-                <div class="li-meta" id="profileEmail" dir="ltr"></div>
-              </div>
-            </div>
-
-            <div class="list-item">
-              <span class="li-main"><span class="li-meta">تاريخ إنشاء الحساب</span></span>
-              <span id="profileCreated" class="muted"></span>
-            </div>
-            <div class="list-item">
-              <span class="li-main"><span class="li-meta">آخر تسجيل دخول</span></span>
-              <span id="profileLastLogin" class="muted"></span>
-            </div>
-
-            <div class="field" style="margin-top:18px">
-              <label for="profileNameInput">الاسم المعروض</label>
-              <input id="profileNameInput" placeholder="اسمك">
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" data-act="profile-save-name">حفظ الاسم</button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head"><h3>تغيير كلمة المرور</h3></div>
-            <div class="form-grid one-col">
-              <div class="field">
-                <label for="pwCurrent">كلمة المرور الحالية</label>
-                <div class="pw-wrap">
-                  <input id="pwCurrent" type="password" dir="ltr" autocomplete="current-password">
-                  <button type="button" class="pw-toggle" data-target="pwCurrent" aria-label="إظهار كلمة المرور">👁️</button>
-                </div>
-              </div>
-              <div class="field">
-                <label for="pwNew">كلمة المرور الجديدة</label>
-                <div class="pw-wrap">
-                  <input id="pwNew" type="password" dir="ltr" autocomplete="new-password">
-                  <button type="button" class="pw-toggle" data-target="pwNew" aria-label="إظهار كلمة المرور">👁️</button>
-                </div>
-                <span class="hint" id="pwStrength" aria-live="polite"></span>
-              </div>
-              <div class="field">
-                <label for="pwConfirm">تأكيد كلمة المرور الجديدة</label>
-                <div class="pw-wrap">
-                  <input id="pwConfirm" type="password" dir="ltr" autocomplete="new-password">
-                  <button type="button" class="pw-toggle" data-target="pwConfirm" aria-label="إظهار كلمة المرور">👁️</button>
-                </div>
-                <span class="err" id="pwError" role="alert"></span>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" data-act="profile-change-password">تغيير كلمة المرور</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== الإعدادات ===== -->
-      <section class="page" id="page-settings" aria-labelledby="h-settings">
-        <div class="page-head">
-          <div><h2 id="h-settings">الإعدادات</h2>
-            <p class="page-sub">بيانات الشركة والنسخ الاحتياطي</p></div>
-        </div>
-
-        <div class="grid-halves">
-          <div class="panel">
-            <div class="panel-head"><h3>بيانات الشركة</h3></div>
-            <p class="muted" style="margin-bottom:14px">بتظهر في الفواتير وعروض الأسعار المطبوعة.</p>
-            <div class="form-grid one-col">
-              <div class="field"><label for="setCompanyName">اسم الشركة</label>
-                <input id="setCompanyName"></div>
-              <div class="field"><label for="setCompanyPhone">رقم الهاتف</label>
-                <input id="setCompanyPhone" type="tel" dir="ltr"></div>
-              <div class="field"><label for="setCompanyAddress">العنوان</label>
-                <input id="setCompanyAddress"></div>
-              <div class="field"><label for="setCurrency">العملة</label>
-                <input id="setCurrency" placeholder="ج.م"></div>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-primary" data-act="settings-save">حفظ الإعدادات</button>
-            </div>
-          </div>
-
-          <div>
-            <div class="panel">
-              <div class="panel-head"><h3>النسخ الاحتياطي</h3></div>
-              <p class="muted" style="margin-bottom:14px">
-                نزّل نسخة من كل بياناتك، أو استرجع نسخة قديمة.
-              </p>
-              <input type="file" id="importFileInput" accept="application/json,.json" hidden>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button type="button" class="btn btn-primary" data-act="export-data">⬇️ تصدير البيانات</button>
-                <button type="button" class="btn btn-ghost" data-act="import-data">⬆️ استيراد نسخة</button>
-              </div>
-            </div>
-
-            <div class="panel">
-              <div class="panel-head"><h3>معلومات النظام</h3></div>
-              <div class="list-item">
-                <span class="li-main"><span class="li-meta">المساحة المستخدمة</span></span>
-                <span id="settingsStorage" class="muted"></span></div>
-              <div class="list-item">
-                <span class="li-main"><span class="li-meta">حجم البيانات</span></span>
-                <span id="settingsCounts" class="muted"></span></div>
-              <div class="list-item">
-                <span class="li-main"><span class="li-meta">إصدار التطبيق</span></span>
-                <span id="settingsVersion" class="muted"></span></div>
-            </div>
-
-            <div class="panel" style="border-color:var(--red-tint)">
-              <div class="panel-head"><h3 style="color:var(--red)">منطقة الخطر</h3></div>
-              <p class="muted" style="margin-bottom:14px">
-                مسح كل البيانات نهائياً من السحابة. اعمل تصدير الأول.
-              </p>
-              <button type="button" class="btn btn-danger" data-act="reset-data">🗑️ مسح كل البيانات</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
     </main>
   </div>
 </div>
 
-<!-- ============================================================
-     المعرض العام (للعميل)
-     ============================================================ -->
-<div id="publicGallery" hidden></div>
+<div id="publicGalleryPage" style="display:none"></div>
 
-<!-- ============================================================
-     العناصر العائمة
-     ============================================================ -->
-<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-  <div class="modal-box" id="modalBox">
-    <div class="modal-head">
-      <h3 id="modalTitle"></h3>
-      <button type="button" class="modal-close" id="modalClose" data-act="modal-close"
-              aria-label="إغلاق النافذة">×</button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="modalTitle"></h3><button class="close" onclick="closeModal()">×</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="lock-screen" id="lockScreen" style="display:none;">
+  <div class="lock-box">
+    <h2>أدخل كلمة المرور</h2>
+    <input id="lockPassword" type="password" placeholder="كلمة المرور">
+    <button class="primary" onclick="unlockApp()">فتح</button>
+    <div class="lock-error" id="lockError"></div>
   </div>
 </div>
 
-<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="عارض الصور">
-  <button type="button" class="lightbox-close" id="lightboxClose" aria-label="إغلاق">×</button>
-  <img id="lightboxImg" src="" alt="">
-  <p class="lightbox-caption" id="lightboxCaption"></p>
-</div>
-
-<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
-
-<!-- ============================================================
-     السكريبتات
-     ============================================================ -->
+<!-- Firebase SDK (compat build, works with plain <script> tags) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-<script src="assets/config.js"></script>
 <script>
-  // تهيئة Firebase قبل أي وحدة بتستخدمه
-  firebase.initializeApp(FIREBASE_CONFIG);
+/* ====== FIREBASE CONFIG ======
+   حط هنا بيانات مشروعك من Firebase Console:
+   Project settings -> General -> Your apps -> Config
+*/
+const firebaseConfig = {
+  apiKey: "AIzaSyB_EDN0TIG3F02TxkmWvwaoPqRrcz5aPdc",
+  authDomain: "mas1-8dc5e.firebaseapp.com",
+  projectId: "mas1-8dc5e",
+  storageBucket: "mas1-8dc5e.firebasestorage.app",
+  messagingSenderId: "815274972120",
+  appId: "1:815274972120:web:7a1a8c67c2e53d202f98ad",
+  measurementId: "G-JEZD70DP5Q"
+};
+
+firebase.initializeApp(firebaseConfig);
+const firestore = firebase.firestore();
+// كل بيانات التطبيق بتتخزن في مستند واحد بيتزامن أوتوماتيك بين كل الأجهزة
+const DOC_REF = firestore.collection('engineer_accounts').doc('main');
+
+let db={projects:[], clients:[], suppliers:[], transactions:[], quotes:[], portfolio:[], invoices:[], nextInvoiceNumber:1, extInvoices:[]};
+let currentTxType='payment';
+
+// ألوان مميزة لكل مشروع عشان تقدر تفرق بينهم بسرعة
+const PROJECT_COLORS=['#d58a45','#5fbd8c','#6ba9df','#d36d59','#e6b84f','#a78bda','#4fb8b0','#e08fb0','#8aa9c9','#c9954f','#7fbf6a','#c96bd8'];
+function projectColor(p){
+  if(p.color) return p.color;
+  // fallback لمشاريع قديمة اتعملت قبل إضافة الألوان: لون ثابت مبني على الـ id
+  let h=0; for(const ch of (p.id||'')) h=(h*31+ch.charCodeAt(0))%PROJECT_COLORS.length;
+  return PROJECT_COLORS[h];
+}
+let suppressNextSnapshot=false; // يمنع اللوب لما إحنا نفسنا اللي بنكتب
+
+const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const money=n=>fmt(n)+' ج.م';
+let numbersHidden=true; // الأرقام مخفية افتراضياً كل ما تفتح الصفحة
+const MASK='★ ★ ★ ★';
+const dfmt=n=>numbersHidden?MASK:fmt(n);
+const dmoney=n=>numbersHidden?MASK:money(n);
+function togglePrivacy(){
+  numbersHidden=!numbersHidden;
+  const sw=document.getElementById('privacySwitch');
+  if(sw) sw.classList.toggle('on',!numbersHidden);
+  renderUI();
+  resetInactivityTimer();
+}
+
+// لو الصفحة فاضلة مفتوحة 5 دقائق من غير أي حركة (كليك/كتابة/سكرول) والأرقام ظاهرة، يقفل زرار "إظهار الأرقام" أوتوماتيك لحمايتها
+const INACTIVITY_LIMIT_MS=5*60*1000;
+let inactivityTimer=null;
+let inactivityDeadline=0;
+function autoHideNumbersOnInactivity(){
+  numbersHidden=true;
+  const sw=document.getElementById('privacySwitch');
+  if(sw) sw.classList.remove('on');
+  closeModal();
+  sessionStorage.removeItem('engineer_accounts_unlocked');
+  const pwInput=document.getElementById('lockPassword');
+  if(pwInput) pwInput.value='';
+  const err=document.getElementById('lockError');
+  if(err) err.textContent='';
+  showLock();
+  setTimeout(()=>document.getElementById('lockPassword')?.focus(),50);
+  toast('تم قفل الصفحة تلقائيًا لعدم وجود نشاط، اكتب كلمة المرور للدخول');
+  updateCountdownDisplay();
+}
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  inactivityDeadline=Date.now()+INACTIVITY_LIMIT_MS;
+  inactivityTimer=setTimeout(autoHideNumbersOnInactivity,INACTIVITY_LIMIT_MS);
+  updateCountdownDisplay();
+}
+function updateCountdownDisplay(){
+  const el=document.getElementById('privacyCountdown');
+  if(!el)return;
+  if(numbersHidden){ el.textContent=''; return; }
+  const remainingMs=Math.max(0,inactivityDeadline-Date.now());
+  const mm=Math.floor(remainingMs/60000);
+  const ss=Math.floor((remainingMs%60000)/1000);
+  el.textContent=mm+':'+String(ss).padStart(2,'0');
+}
+setInterval(updateCountdownDisplay,1000);
+['mousemove','mousedown','keydown','touchstart','scroll','wheel','click'].forEach(evt=>{
+  document.addEventListener(evt,resetInactivityTimer,{passive:true});
+});
+resetInactivityTimer();
+
+function setSyncStatus(state){
+  const dot=document.getElementById('syncDot');
+  const text=document.getElementById('syncText');
+  if(!dot||!text)return;
+  dot.className='sync-dot'+(state==='ok'?' ok':state==='err'?' err':'');
+  text.textContent = state==='ok' ? 'متصل ومتزامن ✓' : state==='err' ? 'تعذر الاتصال بالسحابة' : 'جاري الاتصال بالسحابة...';
+}
+
+// حفظ نسخة احتياطية محلية سريعة (لو النت وقع)، لكن المصدر الأساسي هو Firestore
+function saveLocalCache(){
+  try{ localStorage.setItem('engineer_accounts_cache', JSON.stringify(db)); }catch(e){}
+}
+
+function save(){
+  suppressNextSnapshot=true;
+  saveLocalCache();
+  DOC_REF.set(db).then(()=>setSyncStatus('ok')).catch(e=>{
+    console.error('Firestore save error',e);
+    setSyncStatus('err');
+    toast('تعذر حفظ البيانات في السحابة، اتأكد من النت');
+  });
+}
+
+const projectById=x=>db.projects.find(p=>p.id===x);
+const clientById=x=>db.clients.find(p=>p.id===x);
+const supplierById=x=>db.suppliers.find(p=>p.id===x);
+
+const PAGE_PASSWORD='31219851831';
+const COMPANY_NAME='SMART RUN';
+const COMPANY_LOGO='data:image/jpeg;base64,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';
+const COMPANY_PHONE='01023002943';
+const COMPANY_ADDRESS='برج العرب - الحي الثاني';
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function openModal(title,body){document.getElementById('modalTitle').innerHTML=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show')}
+function showLock(){document.getElementById('lockScreen').style.display='flex';}
+function hideLock(){document.getElementById('lockScreen').style.display='none';}
+function unlockApp(){const input=document.getElementById('lockPassword');const value=input.value.trim();const err=document.getElementById('lockError');if(value===PAGE_PASSWORD){sessionStorage.setItem('engineer_accounts_unlocked','1');hideLock();initApp();} else {err.textContent='كلمة المرور غير صحيحة';input.value='';input.focus();}}
+function initLock(){if(sessionStorage.getItem('engineer_accounts_unlocked')==='1'){hideLock();initApp();} else {showLock();setTimeout(()=>document.getElementById('lockPassword').focus(),50);}}
+
+window.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('lockScreen').style.display==='flex'){e.preventDefault();unlockApp();}});
+
+function typeLabel(t){return {payment:'دفعة من العميل',purchase:'بضاعة / مشتريات',labor:'مصنعية',expense:'مصروفات',withdrawal:'سحب شخصي'}[t]||t}
+function typeClass(t){return t==='payment'?'green':'red'}
+
+// القيمة الإجمالية المتفق عليها = القيمة الأساسية + إجمالي زيادات الشغل المضافة بعدين
+function projectValue(p){
+  if(!p) return 0;
+  const additions=(p.additions||[]).reduce((a,x)=>a+x.amount,0);
+  return (p.value||0)+additions;
+}
+
+// إجمالي اللي اتدفع فعلاً للورش/الفنيين (التصنيع والتركيب) على مشروع معين — المتفق عليه لسه ماخصمش، غير اللي اتدفع
+function projectManufacturingPaidTotal(pid){
+  const p=projectById(pid); if(!p) return 0;
+  return (p.manufacturing||[]).reduce((a,m)=>a+((m.payments||[]).reduce((s,x)=>s+(x.amount||0),0)),0);
+}
+function allManufacturingPaidTotal(){
+  return db.projects.reduce((a,p)=>a+projectManufacturingPaidTotal(p.id),0);
+}
+function projectStats(pid){
+  const tx=db.transactions.filter(t=>t.projectId===pid);
+  const inSum=tx.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
+  const txCosts=tx.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
+  const mfgCosts=projectManufacturingPaidTotal(pid);
+  const costs=txCosts+mfgCosts; // تكاليف الحركات + اللي اتدفع فعلاً للورش (مش المتفق عليه كامل)
+  const profit=inSum-costs;
+  const p=projectById(pid);
+  const remaining=Math.max(0,projectValue(p)-inSum);
+  return {inSum,costs,txCosts,mfgCosts,profit,remaining,tx};
+}
+function totals(){
+  const incoming=db.transactions.filter(t=>t.type==='payment').reduce((a,t)=>a+t.amount,0);
+  const txOutgoing=db.transactions.filter(t=>t.type!=='payment').reduce((a,t)=>a+t.amount,0);
+  const mfgOutgoing=allManufacturingPaidTotal();
+  const outgoing=txOutgoing+mfgOutgoing;
+  const projectReceivable=db.projects.reduce((a,p)=>a+projectStats(p.id).remaining,0);
+  const payable=db.suppliers.reduce((a,s)=>a+(s.balance||0),0);
+  return {incoming,outgoing,balance:incoming-outgoing,receivable:projectReceivable,payable,profit:incoming-outgoing};
+}
+
+function renderDashboard(){
+  const t=totals();
+  document.getElementById('statBalance').textContent=dmoney(t.balance);
+  document.getElementById('statReceivable').textContent=dmoney(t.receivable);
+  document.getElementById('statPayable').textContent=dmoney(t.payable);
+  document.getElementById('statProfit').textContent=dmoney(t.profit);
+  document.getElementById('projectCount').textContent=db.projects.length+' مشروع';
+  const list=document.getElementById('dashboardProjects');
+  list.innerHTML=db.projects.slice(0,8).map(p=>{
+    const s=projectStats(p.id), ratio=projectValue(p)?Math.min(100,s.inSum/projectValue(p)*100):0;
+    return `<div class="project-card" style="border-inline-start-color:${projectColor(p)}" onclick="openProjectDetails('${p.id}')">
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${dmoney(projectValue(p))}</div></div>
+      <div class="project-balance ${s.remaining>0?'':'green'}">${dmoney(s.remaining)}</div></div>
+      <div class="progress"><span style="width:${ratio}%"></span></div>
+      <div class="project-meta">مقبوض ${dmoney(s.inSum)} · ربح ${dmoney(s.profit)}</div>
+    </div>`;
+  }).join('')||'<div class="empty">لا يوجد مشاريع بعد</div>';
+  renderRecent();
+}
+function renderRecent(){
+  const el=document.getElementById('recentTransactions');
+  const arr=[...db.transactions].sort((a,b)=>b.created-a.created).slice(0,7);
+  el.innerHTML=arr.map(t=>`<div class="project-card">
+    <div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div>
+    <div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${dfmt(t.amount)}</div></div>
+  </div>`).join('')||'<div class="empty">لا توجد حركات</div>';
+}
+
+function renderProjects(){
+  const q=(document.getElementById('projectSearch')?.value||'').toLowerCase();
+  const el=document.getElementById('projectsPageList');
+  const arr=db.projects.filter(p=>(p.name+' '+(p.clientName||'')).toLowerCase().includes(q));
+  el.innerHTML=arr.map(p=>{
+    const s=projectStats(p.id);
+    return `<div class="panel" style="border-inline-start:5px solid ${projectColor(p)}">
+      <div class="project-row"><div><div class="project-name"><span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}</div><div class="project-meta">${esc(p.clientName||'بدون عميل')} · القيمة المتفق عليها ${dmoney(projectValue(p))}</div></div>
+      <div><button class="ghost-btn" onclick="openProjectDetails('${p.id}')">فتح</button></div></div>
+      <div class="cards" style="margin:14px 0 0;grid-template-columns:repeat(4,1fr)">
+        <div class="card"><div class="label">المقبوض</div><div class="value green">${dfmt(s.inSum)}</div></div>
+        <div class="card"><div class="label">التكاليف</div><div class="value red">${dfmt(s.costs)}</div></div>
+        <div class="card"><div class="label">الربح</div><div class="value yellow">${dfmt(s.profit)}</div></div>
+        <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(s.remaining)}</div></div>
+      </div>
+    </div>`;
+  }).join('')||'<div class="panel empty">لا توجد مشاريع</div>';
+}
+
+function renderContacts(kind){
+  const arr=kind==='client'?db.clients:db.suppliers;
+  const el=document.getElementById(kind==='client'?'clientsList':'suppliersList');
+  el.innerHTML=arr.map(x=>`<div class="panel"><div class="project-row">
+    <div><div class="project-name">${esc(x.name)}</div><div class="project-meta">${esc(x.phone||'بدون هاتف')} ${x.notes?' · '+esc(x.notes):''}</div></div>
+    <div class="amount ${kind==='client'?'green':'red'}">${dmoney(x.balance||0)}</div>
+  </div></div>`).join('')||'<div class="panel empty">لا توجد بيانات</div>';
+}
+
+function renderTransactions(){
+  const el=document.getElementById('allTransactions');
+  const arr=[...db.transactions].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(t=>{
+    const p=projectById(t.projectId);
+    const party=t.partyName||'';
+    return `<tr><td>${t.date}</td><td><span class="badge ${typeClass(t.type)}">${typeLabel(t.type)}</span></td><td>${esc(t.desc||'-')}</td><td>${esc(p?.name||'-')}</td><td>${esc(party||'-')}</td><td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${dmoney(t.amount)}</td><td>${t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">فاتورة</button>`:'-'}</td><td><button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}')">حذف</button></td></tr>`;
+  }).join('')||'<tr><td colspan="8" class="empty">لا توجد حركات</td></tr>';
+}
+function renderReports(){
+  const sum=t=>db.transactions.filter(x=>x.type===t).reduce((a,x)=>a+x.amount,0);
+  document.getElementById('repPayments').textContent=dmoney(sum('payment'));
+  document.getElementById('repPurchases').textContent=dmoney(sum('purchase'));
+  document.getElementById('repLabor').textContent=dmoney(sum('labor'));
+  document.getElementById('repExpenses').textContent=dmoney(sum('expense')+sum('withdrawal'));
+  document.getElementById('reportProjects').innerHTML=db.projects.map(p=>{
+    const s=projectStats(p.id);
+    return `<tr><td>${esc(p.name)}</td><td class="amount in">${dmoney(s.inSum)}</td><td class="amount out">${dmoney(s.costs)}</td><td class="amount ${s.profit>=0?'in':'out'}">${dmoney(s.profit)}</td><td class="amount">${dmoney(s.remaining)}</td></tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty">لا توجد مشاريع</td></tr>';
+}
+
+function quoteComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
+function quoteGrandTotal(q){return quoteComponentsTotal(q.items)+(+q.labor||0)}
+
+function renderQuotes(){
+  const el=document.getElementById('quotesList');
+  if(!el) return;
+  const arr=[...(db.quotes||[])].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(q=>`<div class="panel">
+    <div class="project-row"><div><div class="project-name">${esc(q.clientName||'عميل بدون اسم')}</div><div class="project-meta">${esc(q.title||'عرض سعر')} · ${q.date||''} · ${(q.items||[]).length} بند</div></div>
+    <div class="project-balance">${money(quoteGrandTotal(q))}</div></div>
+    <div class="form-actions" style="margin-top:12px">
+      <button class="ghost-btn" onclick="openQuoteModal('${q.id}')">تعديل</button>
+      <button class="ghost-btn" onclick="printQuotePdf('${q.id}')">📄 PDF / طباعة</button>
+      <button class="danger" onclick="deleteQuote('${q.id}')">حذف</button>
+    </div>
+  </div>`).join('')||'<div class="panel empty">لا توجد عروض أسعار بعد</div>';
+}
+
+// ===== الفواتير (نفس نظام عرض السعر بس برقم متسلسل) =====
+function invoiceComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
+function invoiceGrandTotal(inv){return invoiceComponentsTotal(inv.items)}
+function invoiceNumberLabel(n){return String(n||0).padStart(4,'0')}
+
+function renderInvoices(){
+  const el=document.getElementById('invoicesList');
+  if(!el) return;
+  const arr=[...(db.invoices||[])].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(inv=>`<div class="panel">
+    <div class="project-row"><div><div class="project-name">فاتورة رقم ${invoiceNumberLabel(inv.number)} · ${esc(inv.clientName||'عميل بدون اسم')}</div><div class="project-meta">${esc(inv.title||'')} ${inv.title?'· ':''}${inv.date||''} · ${(inv.items||[]).length} بند</div></div>
+    <div class="project-balance">${money(invoiceGrandTotal(inv))}</div></div>
+    <div class="form-actions" style="margin-top:12px">
+      <button class="ghost-btn" onclick="openInvoiceModal('${inv.id}')">تعديل</button>
+      <button class="ghost-btn" onclick="printInvoicePdf('${inv.id}')">📄 PDF / طباعة</button>
+      <button class="danger" onclick="deleteInvoice('${inv.id}')">حذف</button>
+    </div>
+  </div>`).join('')||'<div class="panel empty">لا توجد فواتير بعد</div>';
+}
+
+let currentInvoiceDraft=null;
+function openInvoiceModal(invId=''){
+  const existing=invId?(db.invoices||[]).find(i=>i.id===invId):null;
+  if(existing){
+    currentInvoiceDraft=JSON.parse(JSON.stringify(existing));
+  }else{
+    if(!db.nextInvoiceNumber) db.nextInvoiceNumber=1;
+    currentInvoiceDraft={id:id(),number:db.nextInvoiceNumber,clientName:'',title:'',date:new Date().toISOString().slice(0,10),items:[{name:'',qty:1,price:0}],labor:0,created:Date.now()};
+  }
+  openModal(existing?'تعديل فاتورة':'فاتورة جديدة',invoiceModalBody());
+}
+function invoiceModalBody(){
+  return `<div class="small" style="margin-bottom:10px;display:flex;align-items:center;gap:8px"><img src="${COMPANY_LOGO}" alt="${COMPANY_NAME}" style="width:34px;height:34px;border-radius:50%;object-fit:contain">🏢 ${COMPANY_NAME} · 📞 ${COMPANY_PHONE} · فاتورة رقم <strong>${invoiceNumberLabel(currentInvoiceDraft.number)}</strong></div>
+  <div class="form-grid">
+    <div class="form-group"><label>اسم العميل</label><input id="iClientName" value="${esc(currentInvoiceDraft.clientName)}" oninput="currentInvoiceDraft.clientName=this.value"></div>
+    <div class="form-group"><label>عنوان الفاتورة</label><input id="iTitle" value="${esc(currentInvoiceDraft.title)}" oninput="currentInvoiceDraft.title=this.value" placeholder="مثال: تركيب لوحة كهرباء"></div>
+    <div class="form-group"><label>التاريخ</label><input id="iDate" type="date" value="${esc(currentInvoiceDraft.date)}" oninput="currentInvoiceDraft.date=this.value"></div>
+  </div>
+  <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addInvoiceRow()">+ إضافة بند</button></div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="invoiceRowsBody">${invoiceRowsHtml()}</tbody></table></div>
+  <div class="cards" style="margin-top:14px;grid-template-columns:repeat(2,1fr)">
+    <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="iComponentsTotal">${fmt(invoiceComponentsTotal(currentInvoiceDraft.items))}</div></div>
+    <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="iGrandTotal">${fmt(invoiceGrandTotal(currentInvoiceDraft))}</div></div>
+  </div>
+  <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveInvoice()">حفظ الفاتورة</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
+}
+function invoiceRowsHtml(){
+  return currentInvoiceDraft.items.map((it,idx)=>`<tr>
+    <td class="small">${idx+1}</td>
+    <td><input value="${esc(it.name)}" oninput="updateInvoiceRow(${idx},'name',this.value)" placeholder="اسم المكون"></td>
+    <td><input type="number" value="${it.qty}" style="width:70px" oninput="updateInvoiceRow(${idx},'qty',this.value)"></td>
+    <td><input type="number" value="${it.price}" style="width:95px" oninput="updateInvoiceRow(${idx},'price',this.value)"></td>
+    <td class="amount" id="iRowTotal${idx}">${fmt((+it.qty||0)*(+it.price||0))}</td>
+    <td><button class="danger" onclick="removeInvoiceRow(${idx})">حذف</button></td>
+  </tr>`).join('')||'<tr><td colspan="6" class="empty">لا توجد بنود</td></tr>';
+}
+function addInvoiceRow(){
+  currentInvoiceDraft.items.push({name:'',qty:1,price:0});
+  document.getElementById('invoiceRowsBody').innerHTML=invoiceRowsHtml();
+  updateInvoiceTotalsUI();
+}
+function removeInvoiceRow(idx){
+  currentInvoiceDraft.items.splice(idx,1);
+  document.getElementById('invoiceRowsBody').innerHTML=invoiceRowsHtml();
+  updateInvoiceTotalsUI();
+}
+function updateInvoiceRow(idx,field,value){
+  currentInvoiceDraft.items[idx][field]=field==='name'?value:(+value||0);
+  const rowEl=document.getElementById('iRowTotal'+idx);
+  if(rowEl) rowEl.textContent=fmt((+currentInvoiceDraft.items[idx].qty||0)*(+currentInvoiceDraft.items[idx].price||0));
+  updateInvoiceTotalsUI();
+}
+function updateInvoiceTotalsUI(){
+  const compEl=document.getElementById('iComponentsTotal');
+  const grandEl=document.getElementById('iGrandTotal');
+  if(compEl) compEl.textContent=fmt(invoiceComponentsTotal(currentInvoiceDraft.items));
+  if(grandEl) grandEl.textContent=fmt(invoiceGrandTotal(currentInvoiceDraft));
+}
+function saveInvoice(){
+  if(!db.invoices) db.invoices=[];
+  const idx=db.invoices.findIndex(i=>i.id===currentInvoiceDraft.id);
+  const isNew=idx<0;
+  if(!isNew) db.invoices[idx]=currentInvoiceDraft; else db.invoices.push(currentInvoiceDraft);
+  if(isNew){
+    // رقم الفاتورة الجاية لازم يكون أكبر من الرقم اللي استخدمناه دلوقتي
+    db.nextInvoiceNumber=Math.max(db.nextInvoiceNumber||1,currentInvoiceDraft.number+1);
+  }
+  closeModal();
+  renderAll();
+  toast('تم حفظ الفاتورة');
+}
+function deleteInvoice(invId){
+  if(!confirm('حذف الفاتورة دي؟'))return;
+  db.invoices=(db.invoices||[]).filter(i=>i.id!==invId);
+  renderAll();
+  toast('تم الحذف');
+}
+function printInvoicePdf(invId){
+  const inv=(db.invoices||[]).find(x=>x.id===invId); if(!inv)return;
+  const componentsTotal=invoiceComponentsTotal(inv.items);
+  const grand=invoiceGrandTotal(inv);
+  const rows=(inv.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>فاتورة ${invoiceNumberLabel(inv.number)} - ${esc(inv.clientName||'')}</title><style>
+  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
+  .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #d58a45;padding-bottom:14px;margin-bottom:18px}
+  .company-logo{width:92px;height:92px;object-fit:contain;border-radius:50%}
+  .brand-text{font-size:28px;font-weight:900;letter-spacing:1px;color:#3a3a3a;text-shadow:0 1px 0 #fff,0 2px 3px rgba(0,0,0,.15)}
+  .brand-text .brand-run{color:#2f7fd6;margin-inline-start:4px}
+  h2{margin:0 0 4px}
+  .quote-title-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .quote-title-row h2{color:#d58a45}
+  .invoice-number{background:#fdf3e8;color:#a66a2e;border:1px solid #edd3ae;border-radius:8px;padding:5px 12px;font-weight:800;font-size:14px;display:inline-block}
+  .meta{color:#555;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px;border:1px solid #ccc;text-align:right}
+  th{background:#f7f7f7}
+  .amount{text-align:left}
+  .totals{margin-top:16px;width:300px;margin-inline-start:auto}
+  .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+  .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid #111;padding-top:10px;margin-top:6px}
+  .quote-footer{margin-top:50px;padding-top:16px;border-top:2px solid #d58a45;display:flex;justify-content:center;gap:36px;flex-wrap:wrap;page-break-inside:avoid;break-inside:avoid}
+  .quote-footer .item{display:flex;align-items:center;gap:8px;font-size:14px;color:#333;font-weight:700}
+  .quote-footer .icon{font-size:18px}
+  </style></head><body>
+  <div class="header">
+    <div class="brand-text">SMART<span class="brand-run">RUN</span></div>
+    <img class="company-logo" src="${COMPANY_LOGO}" alt="${COMPANY_NAME}">
+  </div>
+  <div class="quote-title-row">
+    <div><h2>فاتورة</h2><span class="invoice-number">رقم ${invoiceNumberLabel(inv.number)}</span></div>
+    <div class="meta" style="margin:0">${esc(inv.date||'')}</div>
+  </div>
+  <div class="meta"><strong>العميل:</strong> ${esc(inv.clientName||'-')}${inv.title?' · <strong>الفاتورة:</strong> '+esc(inv.title):''}</div>
+  <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totals">
+    <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
+    <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
+  </div>
+  <div class="quote-footer">
+    <div class="item"><span class="icon">📞</span><span>${COMPANY_PHONE}</span></div>
+    <div class="item"><span class="icon">📍</span><span>${COMPANY_ADDRESS}</span></div>
+  </div>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+// ===== فاتورة خارجية (من غير أي بيانات شركة، ولون مختلف كل مرة) =====
+function extInvoiceComponentsTotal(items){return (items||[]).reduce((a,it)=>a+(+it.qty||0)*(+it.price||0),0)}
+function extInvoiceGrandTotal(inv){return extInvoiceComponentsTotal(inv.items)}
+
+function renderExtInvoices(){
+  const el=document.getElementById('extInvoicesList');
+  if(!el) return;
+  const arr=[...(db.extInvoices||[])].sort((a,b)=>b.created-a.created);
+  el.innerHTML=arr.map(inv=>`<div class="panel" style="border-inline-start:5px solid ${inv.color||PROJECT_COLORS[0]}">
+    <div class="project-row"><div><div class="project-name">${esc(inv.clientName||'عميل بدون اسم')}</div><div class="project-meta">${esc(inv.title||'فاتورة خارجية')} · ${inv.date||''} · ${(inv.items||[]).length} بند</div></div>
+    <div class="project-balance">${money(extInvoiceGrandTotal(inv))}</div></div>
+    <div class="form-actions" style="margin-top:12px">
+      <button class="ghost-btn" onclick="openExtInvoiceModal('${inv.id}')">تعديل</button>
+      <button class="ghost-btn" onclick="printExtInvoicePdf('${inv.id}')">📄 PDF / طباعة</button>
+      <button class="danger" onclick="deleteExtInvoice('${inv.id}')">حذف</button>
+    </div>
+  </div>`).join('')||'<div class="panel empty">لا توجد فواتير خارجية بعد</div>';
+}
+
+let currentExtInvoiceDraft=null;
+function openExtInvoiceModal(invId=''){
+  const existing=invId?(db.extInvoices||[]).find(i=>i.id===invId):null;
+  if(existing){
+    currentExtInvoiceDraft=JSON.parse(JSON.stringify(existing));
+  }else{
+    // كل فاتورة خارجية جديدة بتاخد لون مختلف عن اللي قبلها
+    const color=PROJECT_COLORS[(db.extInvoices||[]).length%PROJECT_COLORS.length];
+    currentExtInvoiceDraft={id:id(),clientName:'',title:'',date:new Date().toISOString().slice(0,10),items:[{name:'',qty:1,price:0}],labor:0,color,created:Date.now()};
+  }
+  openModal(existing?'تعديل فاتورة خارجية':'فاتورة خارجية جديدة',extInvoiceModalBody());
+}
+function extInvoiceModalBody(){
+  return `<div class="small" style="margin-bottom:10px;display:flex;align-items:center;gap:8px"><span class="project-dot" style="background:${currentExtInvoiceDraft.color}"></span>فاتورة خارجية (من غير بيانات شركة)</div>
+  <div class="form-grid">
+    <div class="form-group"><label>اسم العميل</label><input id="eiClientName" value="${esc(currentExtInvoiceDraft.clientName)}" oninput="currentExtInvoiceDraft.clientName=this.value"></div>
+    <div class="form-group"><label>عنوان الفاتورة</label><input id="eiTitle" value="${esc(currentExtInvoiceDraft.title)}" oninput="currentExtInvoiceDraft.title=this.value" placeholder="مثال: تركيب لوحة كهرباء"></div>
+    <div class="form-group"><label>التاريخ</label><input id="eiDate" type="date" value="${esc(currentExtInvoiceDraft.date)}" oninput="currentExtInvoiceDraft.date=this.value"></div>
+  </div>
+  <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addExtInvoiceRow()">+ إضافة بند</button></div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="extInvoiceRowsBody">${extInvoiceRowsHtml()}</tbody></table></div>
+  <div class="cards" style="margin-top:14px;grid-template-columns:repeat(2,1fr)">
+    <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="eiComponentsTotal">${fmt(extInvoiceComponentsTotal(currentExtInvoiceDraft.items))}</div></div>
+    <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="eiGrandTotal">${fmt(extInvoiceGrandTotal(currentExtInvoiceDraft))}</div></div>
+  </div>
+  <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveExtInvoice()">حفظ الفاتورة</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
+}
+function extInvoiceRowsHtml(){
+  return currentExtInvoiceDraft.items.map((it,idx)=>`<tr>
+    <td class="small">${idx+1}</td>
+    <td><input value="${esc(it.name)}" oninput="updateExtInvoiceRow(${idx},'name',this.value)" placeholder="اسم المكون"></td>
+    <td><input type="number" value="${it.qty}" style="width:70px" oninput="updateExtInvoiceRow(${idx},'qty',this.value)"></td>
+    <td><input type="number" value="${it.price}" style="width:95px" oninput="updateExtInvoiceRow(${idx},'price',this.value)"></td>
+    <td class="amount" id="eiRowTotal${idx}">${fmt((+it.qty||0)*(+it.price||0))}</td>
+    <td><button class="danger" onclick="removeExtInvoiceRow(${idx})">حذف</button></td>
+  </tr>`).join('')||'<tr><td colspan="6" class="empty">لا توجد بنود</td></tr>';
+}
+function addExtInvoiceRow(){
+  currentExtInvoiceDraft.items.push({name:'',qty:1,price:0});
+  document.getElementById('extInvoiceRowsBody').innerHTML=extInvoiceRowsHtml();
+  updateExtInvoiceTotalsUI();
+}
+function removeExtInvoiceRow(idx){
+  currentExtInvoiceDraft.items.splice(idx,1);
+  document.getElementById('extInvoiceRowsBody').innerHTML=extInvoiceRowsHtml();
+  updateExtInvoiceTotalsUI();
+}
+function updateExtInvoiceRow(idx,field,value){
+  currentExtInvoiceDraft.items[idx][field]=field==='name'?value:(+value||0);
+  const rowEl=document.getElementById('eiRowTotal'+idx);
+  if(rowEl) rowEl.textContent=fmt((+currentExtInvoiceDraft.items[idx].qty||0)*(+currentExtInvoiceDraft.items[idx].price||0));
+  updateExtInvoiceTotalsUI();
+}
+function updateExtInvoiceTotalsUI(){
+  const compEl=document.getElementById('eiComponentsTotal');
+  const grandEl=document.getElementById('eiGrandTotal');
+  if(compEl) compEl.textContent=fmt(extInvoiceComponentsTotal(currentExtInvoiceDraft.items));
+  if(grandEl) grandEl.textContent=fmt(extInvoiceGrandTotal(currentExtInvoiceDraft));
+}
+function saveExtInvoice(){
+  if(!db.extInvoices) db.extInvoices=[];
+  const idx=db.extInvoices.findIndex(i=>i.id===currentExtInvoiceDraft.id);
+  if(idx>=0) db.extInvoices[idx]=currentExtInvoiceDraft; else db.extInvoices.push(currentExtInvoiceDraft);
+  closeModal();
+  renderAll();
+  toast('تم حفظ الفاتورة الخارجية');
+}
+function deleteExtInvoice(invId){
+  if(!confirm('حذف الفاتورة الخارجية دي؟'))return;
+  db.extInvoices=(db.extInvoices||[]).filter(i=>i.id!==invId);
+  renderAll();
+  toast('تم الحذف');
+}
+function printExtInvoicePdf(invId){
+  const inv=(db.extInvoices||[]).find(x=>x.id===invId); if(!inv)return;
+  const componentsTotal=extInvoiceComponentsTotal(inv.items);
+  const grand=extInvoiceGrandTotal(inv);
+  const color=inv.color||PROJECT_COLORS[0];
+  const rows=(inv.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>فاتورة - ${esc(inv.clientName||'')}</title><style>
+  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
+  .header{border-bottom:3px solid ${color};padding-bottom:14px;margin-bottom:20px}
+  h2{margin:0 0 4px;color:${color}}
+  .meta{color:#555;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px;border:1px solid #ccc;text-align:right}
+  th{background:#f7f7f7}
+  .amount{text-align:left}
+  .totals{margin-top:16px;width:300px;margin-inline-start:auto}
+  .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+  .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid ${color};padding-top:10px;margin-top:6px;color:${color}}
+  </style></head><body>
+  <div class="header">
+    <h2>فاتورة</h2>
+    <div class="meta">${esc(inv.date||'')}</div>
+  </div>
+  <div class="meta"><strong>العميل:</strong> ${esc(inv.clientName||'-')}${inv.title?' · <strong>الفاتورة:</strong> '+esc(inv.title):''}</div>
+  <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totals">
+    <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
+    <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
+  </div>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+function portfolioPublicUrl(){
+  return location.href.split('#')[0].split('?')[0]+'?portfolio=1';
+}
+function isLocalFile(){
+  return location.protocol==='file:';
+}
+function renderPortfolio(){
+  const grid=document.getElementById('portfolioGrid');
+  const linkInput=document.getElementById('portfolioLinkText');
+  if(linkInput) linkInput.value=portfolioPublicUrl();
+  const warn=document.getElementById('portfolioLocalWarning');
+  if(warn) warn.style.display=isLocalFile()?'block':'none';
+  if(!grid) return;
+  const arr=[...(db.portfolio||[])].sort((a,b)=>b.created-a.created);
+  grid.innerHTML=arr.map(img=>`<div class="gallery-item">
+    <div class="gallery-img-wrap">
+      <img src="${img.image}" onclick="window.open('${img.image}','_blank')">
+      <button class="gallery-del" onclick="deletePortfolioImage('${img.id}')">حذف</button>
+    </div>
+    <input class="gallery-caption" value="${esc(img.caption||'')}" placeholder="اكتب تعليق يشرح الصورة..." oninput="updatePortfolioCaption('${img.id}',this.value)">
+  </div>`).join('')||'<div class="empty" style="grid-column:1/-1">لسه مفيش صور، دوس "+ إضافة صور"</div>';
+}
+function updatePortfolioCaption(imgId,value){
+  const img=(db.portfolio||[]).find(x=>x.id===imgId);
+  if(!img) return;
+  img.caption=value;
+  clearTimeout(window.__captionSaveTimer);
+  window.__captionSaveTimer=setTimeout(()=>save(),600); // نستنى شوية بعد آخر حرف قبل ما نحفظ عشان منزعجش الكتابة
+}
+function triggerPortfolioUpload(){
+  document.getElementById('portfolioFileInput').click();
+}
+function copyPortfolioLink(){
+  const el=document.getElementById('portfolioLinkText');
+  el.select();
+  navigator.clipboard?.writeText(el.value).then(()=>toast('تم نسخ الرابط')).catch(()=>{
+    document.execCommand('copy'); toast('تم نسخ الرابط');
+  });
+}
+// بيصغّر أي صورة قبل ما يخزنها عشان الحجم يفضل صغير ومناسب لتخزين Firestore
+function compressImage(file,maxDim=1000,quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>h){ if(w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; } }
+        else{ if(h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; } }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+document.getElementById('portfolioFileInput').addEventListener('change',async(e)=>{
+  const files=Array.from(e.target.files||[]);
+  if(!files.length) return;
+  toast('جاري رفع الصور...');
+  if(!db.portfolio) db.portfolio=[];
+  for(const file of files){
+    try{
+      const compressed=await compressImage(file);
+      db.portfolio.push({id:id(),image:compressed,caption:'',created:Date.now()});
+    }catch(err){ console.error('portfolio upload error',err); }
+  }
+  e.target.value='';
+  renderAll();
+  toast('تمت إضافة الصور');
+});
+function deletePortfolioImage(imgId){
+  if(!confirm('حذف الصورة دي؟'))return;
+  db.portfolio=(db.portfolio||[]).filter(x=>x.id!==imgId);
+  renderAll();
+  toast('تم الحذف');
+}
+// صفحة المعرض العامة اللي بتفتح للعميل من غير كلمة مرور
+function renderPublicGallery(){
+  document.querySelector('.app').style.display='none';
+  document.getElementById('lockScreen').style.display='none';
+  const container=document.getElementById('publicGalleryPage');
+  container.style.display='block';
+  container.innerHTML=`<div class="public-gallery">
+    <div class="pg-header"><img class="pg-logo" src="${COMPANY_LOGO}" alt="${COMPANY_NAME}"><div><h1>سابقة أعمال ${COMPANY_NAME}</h1><div class="pg-sub">📞 ${COMPANY_PHONE} · 📍 ${COMPANY_ADDRESS}</div></div></div>
+    <div class="pg-grid" id="pgGrid"><div class="empty">جاري تحميل الصور...</div></div>
+  </div>
+  <div class="pg-lightbox" id="pgLightbox" onclick="this.classList.remove('show')"><div><img id="pgLightboxImg" src=""><div id="pgLightboxCaption" class="pg-lightbox-caption"></div></div></div>`;
+  DOC_REF.get().then(doc=>{
+    const data=doc.exists?doc.data():null;
+    const imgs=(data && data.portfolio)||[];
+    const grid=document.getElementById('pgGrid');
+    const sorted=[...imgs].sort((a,b)=>b.created-a.created);
+    grid.innerHTML=sorted.map(img=>`<div class="pg-card">
+      <img src="${img.image}" onclick="openPgLightbox('${img.image}','${esc(img.caption||'').replace(/'/g,"\\'")}')">
+      ${img.caption?`<div class="pg-caption">${esc(img.caption)}</div>`:''}
+    </div>`).join('')||'<div class="empty">لسه مفيش صور شغل مضافة</div>';
+  }).catch(e=>{
+    document.getElementById('pgGrid').innerHTML='<div class="empty">تعذر تحميل الصور، تأكد من الاتصال بالإنترنت</div>';
+  });
+}
+function openPgLightbox(src,caption){
+  document.getElementById('pgLightboxImg').src=src;
+  document.getElementById('pgLightboxCaption').textContent=caption||'';
+  document.getElementById('pgLightbox').classList.add('show');
+}
+
+let currentQuoteDraft=null;
+function openQuoteModal(qid=''){
+  const existing=qid?(db.quotes||[]).find(q=>q.id===qid):null;
+  currentQuoteDraft=existing?JSON.parse(JSON.stringify(existing)):{id:id(),clientName:'',title:'',date:new Date().toISOString().slice(0,10),items:[{name:'',qty:1,price:0}],labor:0,created:Date.now()};
+  openModal(existing?'تعديل عرض السعر':'عرض سعر جديد',quoteModalBody());
+}
+function quoteModalBody(){
+  return `<div class="small" style="margin-bottom:10px;display:flex;align-items:center;gap:8px"><img src="${COMPANY_LOGO}" alt="${COMPANY_NAME}" style="width:34px;height:34px;border-radius:50%;object-fit:contain">🏢 ${COMPANY_NAME} · 📞 ${COMPANY_PHONE}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>اسم العميل</label><input id="qClientName" value="${esc(currentQuoteDraft.clientName)}" oninput="currentQuoteDraft.clientName=this.value"></div>
+    <div class="form-group"><label>عنوان العرض</label><input id="qTitle" value="${esc(currentQuoteDraft.title)}" oninput="currentQuoteDraft.title=this.value" placeholder="مثال: تركيب لوحة كهرباء"></div>
+    <div class="form-group"><label>التاريخ</label><input id="qDate" type="date" value="${esc(currentQuoteDraft.date)}" oninput="currentQuoteDraft.date=this.value"></div>
+  </div>
+  <div class="panel-title" style="margin-top:14px"><h3>البنود</h3><button class="ghost-btn" onclick="addQuoteRow()">+ إضافة بند</button></div>
+  <div class="table-wrap"><table><thead><tr><th>#</th><th>اسم المكون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th><th></th></tr></thead><tbody id="quoteRowsBody">${quoteRowsHtml()}</tbody></table></div>
+  <div class="form-grid" style="margin-top:14px">
+    <div class="form-group"><label>تكلفة العمل</label><input id="qLabor" type="number" value="${currentQuoteDraft.labor}" oninput="currentQuoteDraft.labor=+this.value||0; updateQuoteTotalsUI()"></div>
+  </div>
+  <div class="cards" style="margin-top:12px;grid-template-columns:repeat(3,1fr)">
+    <div class="card"><div class="label">إجمالي المكونات</div><div class="value" id="qComponentsTotal">${fmt(quoteComponentsTotal(currentQuoteDraft.items))}</div></div>
+    <div class="card"><div class="label">تكلفة العمل</div><div class="value" id="qLaborTotal">${fmt(currentQuoteDraft.labor)}</div></div>
+    <div class="card"><div class="label">الإجمالي الكلي</div><div class="value yellow" id="qGrandTotal">${fmt(quoteGrandTotal(currentQuoteDraft))}</div></div>
+  </div>
+  <div class="form-actions" style="margin-top:14px"><button class="primary" onclick="saveQuote()">حفظ عرض السعر</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`;
+}
+function quoteRowsHtml(){
+  return currentQuoteDraft.items.map((it,idx)=>`<tr>
+    <td class="small">${idx+1}</td>
+    <td><input value="${esc(it.name)}" oninput="updateQuoteRow(${idx},'name',this.value)" placeholder="اسم المكون"></td>
+    <td><input type="number" value="${it.qty}" style="width:70px" oninput="updateQuoteRow(${idx},'qty',this.value)"></td>
+    <td><input type="number" value="${it.price}" style="width:95px" oninput="updateQuoteRow(${idx},'price',this.value)"></td>
+    <td class="amount" id="qRowTotal${idx}">${fmt((+it.qty||0)*(+it.price||0))}</td>
+    <td><button class="danger" onclick="removeQuoteRow(${idx})">حذف</button></td>
+  </tr>`).join('')||'<tr><td colspan="6" class="empty">لا توجد بنود</td></tr>';
+}
+function addQuoteRow(){
+  currentQuoteDraft.items.push({name:'',qty:1,price:0});
+  document.getElementById('quoteRowsBody').innerHTML=quoteRowsHtml();
+  updateQuoteTotalsUI();
+}
+function removeQuoteRow(idx){
+  currentQuoteDraft.items.splice(idx,1);
+  document.getElementById('quoteRowsBody').innerHTML=quoteRowsHtml();
+  updateQuoteTotalsUI();
+}
+function updateQuoteRow(idx,field,value){
+  currentQuoteDraft.items[idx][field]=field==='name'?value:(+value||0);
+  const rowEl=document.getElementById('qRowTotal'+idx);
+  if(rowEl) rowEl.textContent=fmt((+currentQuoteDraft.items[idx].qty||0)*(+currentQuoteDraft.items[idx].price||0));
+  updateQuoteTotalsUI();
+}
+function updateQuoteTotalsUI(){
+  const compEl=document.getElementById('qComponentsTotal');
+  const laborEl=document.getElementById('qLaborTotal');
+  const grandEl=document.getElementById('qGrandTotal');
+  if(compEl) compEl.textContent=fmt(quoteComponentsTotal(currentQuoteDraft.items));
+  if(laborEl) laborEl.textContent=fmt(currentQuoteDraft.labor||0);
+  if(grandEl) grandEl.textContent=fmt(quoteGrandTotal(currentQuoteDraft));
+}
+function saveQuote(){
+  if(!db.quotes) db.quotes=[];
+  const idx=db.quotes.findIndex(q=>q.id===currentQuoteDraft.id);
+  if(idx>=0) db.quotes[idx]=currentQuoteDraft; else db.quotes.push(currentQuoteDraft);
+  closeModal();
+  renderAll();
+  toast('تم حفظ عرض السعر');
+}
+function deleteQuote(qid){
+  if(!confirm('حذف عرض السعر ده؟'))return;
+  db.quotes=(db.quotes||[]).filter(q=>q.id!==qid);
+  renderAll();
+  toast('تم الحذف');
+}
+function printQuotePdf(qid){
+  const q=(db.quotes||[]).find(x=>x.id===qid); if(!q)return;
+  if(isLocalFile()) toast('⚠️ زرار "شوف سابقة أعمالنا" مش هيشتغل عند العميل غير لو التطبيق منشور أونلاين');
+  const componentsTotal=quoteComponentsTotal(q.items);
+  const grand=quoteGrandTotal(q);
+  const rows=(q.items||[]).map((it,idx)=>`<tr><td>${idx+1}</td><td>${esc(it.name||'-')}</td><td>${it.qty}</td><td>${fmt(it.price)}</td><td class="amount">${fmt((+it.qty||0)*(+it.price||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">لا توجد بنود</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>عرض سعر - ${esc(q.title||q.clientName||'')}</title><style>
+  body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}
+  .header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #d58a45;padding-bottom:14px;margin-bottom:18px}
+  .company-logo{width:92px;height:92px;object-fit:contain;border-radius:50%}
+  .brand-text{font-size:28px;font-weight:900;letter-spacing:1px;color:#3a3a3a;text-shadow:0 1px 0 #fff,0 2px 3px rgba(0,0,0,.15)}
+  .brand-text .brand-run{color:#2f7fd6;margin-inline-start:4px}
+  h2{margin:0 0 4px}
+  .quote-title-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .quote-title-row h2{color:#d58a45}
+  .meta{color:#555;font-size:13px;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px;border:1px solid #ccc;text-align:right}
+  th{background:#f7f7f7}
+  .amount{text-align:left}
+  .totals{margin-top:16px;width:300px;margin-inline-start:auto}
+  .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
+  .totals .grand{font-weight:900;font-size:17px;border-bottom:none;border-top:2px solid #111;padding-top:10px;margin-top:6px}
+  .validity-note{margin-top:16px;text-align:center;color:#a66a2e;background:#fdf3e8;border:1px solid #edd3ae;border-radius:10px;padding:10px;font-size:13px;font-weight:700}
+  .quote-footer{margin-top:50px;padding-top:16px;border-top:2px solid #d58a45;display:flex;justify-content:center;gap:36px;flex-wrap:wrap;page-break-inside:avoid;break-inside:avoid}
+  .quote-footer .item{display:flex;align-items:center;gap:8px;font-size:14px;color:#333;font-weight:700}
+  .quote-footer .icon{font-size:18px}
+  .portfolio-link-wrap{margin-top:22px;text-align:center;page-break-inside:avoid;break-inside:avoid}
+  .portfolio-link-btn{display:inline-flex;align-items:center;gap:8px;background:#d58a45;color:#fff;text-decoration:none;font-weight:800;font-size:14px;padding:12px 24px;border-radius:10px}
+  .portfolio-link-btn:hover{background:#c67a38}
+  </style></head><body>
+  <div class="header">
+    <div class="brand-text">SMART<span class="brand-run">RUN</span></div>
+    <img class="company-logo" src="${COMPANY_LOGO}" alt="${COMPANY_NAME}">
+  </div>
+  <div class="quote-title-row">
+    <h2>عرض سعر</h2>
+    <div class="meta" style="margin:0">${esc(q.date||'')}</div>
+  </div>
+  <div class="meta"><strong>العميل:</strong> ${esc(q.clientName||'-')}${q.title?' · <strong>العرض:</strong> '+esc(q.title):''}</div>
+  <table><thead><tr><th style="width:36px">#</th><th>البند</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="totals">
+    <div><span>إجمالي المكونات</span><span>${fmt(componentsTotal)} ج.م</span></div>
+    <div><span>تكلفة العمل</span><span>${fmt(q.labor||0)} ج.م</span></div>
+    <div class="grand"><span>الإجمالي الكلي</span><span>${fmt(grand)} ج.م</span></div>
+  </div>
+  <div class="validity-note">⏳ العرض ساري 15 يوم من تاريخ العرض</div>
+  <div class="portfolio-link-wrap">
+    <a class="portfolio-link-btn" href="${portfolioPublicUrl()}" target="_blank">🖼️ شوف سابقة أعمالنا</a>
+  </div>
+  <div class="quote-footer">
+    <div class="item"><span class="icon">📞</span><span>${COMPANY_PHONE}</span></div>
+    <div class="item"><span class="icon">📍</span><span>${COMPANY_ADDRESS}</span></div>
+  </div>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+// renderUI فقط بيحدث الشاشة، من غير ما يحفظ (يستخدم عند وصول تحديث من جهاز تاني)
+function renderUI(){
+  renderDashboard();
+  renderProjects();
+  renderContacts('client');
+  renderContacts('supplier');
+  renderTransactions();
+  renderReports();
+  renderQuotes();
+  renderInvoices();
+  renderExtInvoices();
+  renderPortfolio();
+}
+// renderAll بتحدث الشاشة وتحفظ في السحابة (تستخدم بعد أي تعديل محلي)
+function renderAll(){
+  renderUI();
+  save();
+}
+
+function initApp(){
+  setSyncStatus('connecting');
+  DOC_REF.get().then(doc=>{
+    if(doc.exists){
+      const data=doc.data();
+      db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1,extInvoices:[]};
+      if(!db.quotes) db.quotes=[];
+    }
+    renderUI();
+    setSyncStatus('ok');
+    // الاستماع لأي تغييرات جاية من أي جهاز تاني وتحديث الشاشة أوتوماتيك
+    DOC_REF.onSnapshot(snap=>{
+      if(suppressNextSnapshot){ suppressNextSnapshot=false; return; }
+      if(snap.exists){
+        const data=snap.data();
+        db = data && typeof data==='object' ? data : {projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1,extInvoices:[]};
+        if(!db.quotes) db.quotes=[];
+        renderUI();
+      }
+    },err=>{ console.error('Firestore listen error',err); setSyncStatus('err'); });
+  }).catch(e=>{
+    console.error('Firestore load error',e);
+    setSyncStatus('err');
+    toast('تعذر تحميل البيانات من السحابة، اتأكد من إعدادات Firebase والنت');
+    // fallback لآخر نسخة محفوظة محلياً على الجهاز ده لحد ما النت يرجع
+    try{
+      const cache=localStorage.getItem('engineer_accounts_cache');
+      if(cache) db=JSON.parse(cache);
+    }catch(err){}
+    renderUI();
+  });
+}
+
+let selectedProjectColor=PROJECT_COLORS[0];
+function openProjectModal(){
+  selectedProjectColor=PROJECT_COLORS[db.projects.length%PROJECT_COLORS.length];
+  openModal('إضافة مشروع',`<div class="form-grid">
+    <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" placeholder="مثال: مصنع النور"></div>
+    <div class="form-group"><label>اسم العميل</label><input id="fClientName" placeholder="اسم الشركة أو المصنع"></div>
+    <div class="form-group"><label>القيمة المتفق عليها</label><input id="fProjectValue" type="number" placeholder="0"></div>
+    <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>لون المشروع</label>
+    <div class="color-picker" id="colorPicker">${PROJECT_COLORS.map(c=>`<span class="color-dot${c===selectedProjectColor?' selected':''}" style="background:${c}" onclick="pickProjectColor('${c}',this)"></span>`).join('')}</div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fProjectNotes"></textarea></div>
+  <div class="form-actions"><button class="primary" onclick="createProject()">حفظ المشروع</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`);
+}
+function pickProjectColor(c,el){
+  selectedProjectColor=c;
+  document.querySelectorAll('#colorPicker .color-dot').forEach(d=>d.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function createProject(){
+  const name=document.getElementById('fProjectName').value.trim(); if(!name)return toast('اكتب اسم المشروع');
+  db.projects.push({id:id(),name,clientName:document.getElementById('fClientName').value.trim(),value:+document.getElementById('fProjectValue').value||0,date:document.getElementById('fProjectDate').value,notes:document.getElementById('fProjectNotes').value,color:selectedProjectColor});
+  closeModal();renderAll();toast('تم إضافة المشروع');
+}
+
+function openContactModal(kind){
+  const title=kind==='client'?'إضافة عميل':'إضافة مورد';
+  openModal(title,`<div class="form-grid"><div class="form-group"><label>الاسم</label><input id="fContactName"></div><div class="form-group"><label>الهاتف</label><input id="fContactPhone"></div><div class="form-group"><label>الرصيد الحالي</label><input id="fContactBalance" type="number" value="0"></div><div class="form-group"><label>ملاحظات</label><input id="fContactNotes"></div></div><div class="form-actions"><button class="primary" onclick="createContact('${kind}')">حفظ</button></div>`);
+}
+function createContact(kind){
+  const name=document.getElementById('fContactName').value.trim();if(!name)return toast('اكتب الاسم');
+  const obj={id:id(),name,phone:document.getElementById('fContactPhone').value.trim(),balance:+document.getElementById('fContactBalance').value||0,notes:document.getElementById('fContactNotes').value.trim()};
+  (kind==='client'?db.clients:db.suppliers).push(obj);closeModal();renderAll();toast('تم الحفظ');
+}
+
+function openTransactionModal(projectId=''){
+  currentTxType='payment';
+  openModal('إضافة حركة',`<div class="tx-type">${['payment','purchase','labor','expense','withdrawal'].map((t,i)=>`<button class="${i===0?'active':''}" data-txtype="${t}" onclick="selectTxType('${t}',this)">${typeLabel(t)}</button>`).join('')}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>المشروع</label><select id="fTxProject"><option value="">بدون مشروع</option>${db.projects.map(p=>`<option value="${p.id}"${p.id===projectId?' selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="form-group"><label>المبلغ</label><input id="fTxAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>البيان</label><input id="fTxDesc" placeholder="مثال: دفعة أولى / شراء كابلات"></div>
+    <div class="form-group"><label>اسم الطرف</label><input id="fTxParty" placeholder="عميل / مورد / فني"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fTxDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>صورة الفاتورة</label><input id="fTxInvoice" type="file" accept="image/*"></div>
+  </div><div class="form-actions"><button class="primary" onclick="createTransaction()">إضافة الحركة</button></div>`);
+}
+function selectTxType(t,btn){currentTxType=t;document.querySelectorAll('[data-txtype]').forEach(x=>x.classList.remove('active'));btn.classList.add('active')}
+async function createTransaction(){
+  const amount=+document.getElementById('fTxAmount').value;if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const invoiceInput=document.getElementById('fTxInvoice');
+  let invoiceImage='';
+  let invoiceName='';
+  if(invoiceInput?.files?.[0]){
+    invoiceName=invoiceInput.files[0].name;
+    invoiceImage=await readFileAsDataURL(invoiceInput.files[0]);
+  }
+  db.transactions.push({id:id(),type:currentTxType,amount,projectId:document.getElementById('fTxProject').value,desc:document.getElementById('fTxDesc').value.trim(),partyName:document.getElementById('fTxParty').value.trim(),date:document.getElementById('fTxDate').value,created:Date.now(),invoiceImage,invoiceName});
+  closeModal();renderAll();toast('تمت إضافة الحركة');
+}
+function deleteTx(txid){if(!confirm('حذف الحركة؟'))return;db.transactions=db.transactions.filter(x=>x.id!==txid);renderAll();toast('تم الحذف')}
+
+// فئات مصروفات جاهزة عشان تسجل بسرعة من غير ما تكتب كل مرة
+const EXPENSE_CATEGORIES=[
+  {label:'موصلات وتوصيلات',type:'purchase'},
+  {label:'أكل عمال',type:'expense'},
+  {label:'مصنعية مساعدين',type:'labor'},
+  {label:'مواصلات',type:'expense'},
+  {label:'أدوات وعدد',type:'purchase'},
+  {label:'أخرى',type:'expense'}
+];
+let quickExpenseCategory=EXPENSE_CATEGORIES[0];
+function openQuickExpenseModal(pid){
+  quickExpenseCategory=EXPENSE_CATEGORIES[0];
+  openModal('إضافة مصروف مشروع',`<div class="tx-type" id="expenseCatPicker">${EXPENSE_CATEGORIES.map((c,i)=>`<button class="${i===0?'active':''}" onclick="pickExpenseCategory(${i},this)">${c.label}</button>`).join('')}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>المبلغ</label><input id="fQxAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>البيان (اختياري)</label><input id="fQxDesc" placeholder="تفاصيل إضافية"></div>
+    <div class="form-group"><label>اسم الطرف</label><input id="fQxParty" placeholder="مورد / فني / مساعد"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fQxDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>صورة الفاتورة</label><input id="fQxInvoice" type="file" accept="image/*"></div>
+  </div><div class="form-actions"><button class="primary" onclick="saveQuickExpense('${pid}')">إضافة المصروف</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function pickExpenseCategory(i,btn){
+  quickExpenseCategory=EXPENSE_CATEGORIES[i];
+  document.querySelectorAll('#expenseCatPicker button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+async function saveQuickExpense(pid){
+  const amount=+document.getElementById('fQxAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const invoiceInput=document.getElementById('fQxInvoice');
+  let invoiceImage='',invoiceName='';
+  if(invoiceInput?.files?.[0]){
+    invoiceName=invoiceInput.files[0].name;
+    invoiceImage=await readFileAsDataURL(invoiceInput.files[0]);
+  }
+  const desc=document.getElementById('fQxDesc').value.trim();
+  db.transactions.push({id:id(),type:quickExpenseCategory.type,amount,projectId:pid,desc:desc||quickExpenseCategory.label,partyName:document.getElementById('fQxParty').value.trim(),date:document.getElementById('fQxDate').value,created:Date.now(),invoiceImage,invoiceName});
+  renderAll();
+  openProjectDetails(pid);
+  toast('تمت إضافة المصروف');
+}
+
+function openTxEdit(txid){
+  const t=db.transactions.find(x=>x.id===txid); if(!t)return;
+  currentTxType=t.type;
+  openModal('تعديل الحركة',`<div class="tx-type">${['payment','purchase','labor','expense','withdrawal'].map(tp=>`<button class="${tp===t.type?'active':''}" data-txtype="${tp}" onclick="selectTxType('${tp}',this)">${typeLabel(tp)}</button>`).join('')}</div>
+  <div class="form-grid">
+    <div class="form-group"><label>المشروع</label><select id="fTxProject"><option value="">بدون مشروع</option>${db.projects.map(p=>`<option value="${p.id}"${p.id===t.projectId?' selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="form-group"><label>المبلغ</label><input id="fTxAmount" type="number" value="${t.amount}"></div>
+    <div class="form-group"><label>البيان</label><input id="fTxDesc" value="${esc(t.desc||'')}"></div>
+    <div class="form-group"><label>اسم الطرف</label><input id="fTxParty" value="${esc(t.partyName||'')}"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fTxDate" type="date" value="${esc(t.date||'')}"></div>
+    <div class="form-group"><label>صورة الفاتورة (اتركها فاضية للاحتفاظ بالحالية)</label><input id="fTxInvoice" type="file" accept="image/*"></div>
+  </div><div class="form-actions"><button class="primary" onclick="saveTxEdit('${txid}')">حفظ التعديل</button><button class="danger" onclick="deleteTx('${txid}');closeModal()">حذف الحركة</button></div>`);
+}
+async function saveTxEdit(txid){
+  const t=db.transactions.find(x=>x.id===txid); if(!t)return;
+  const amount=+document.getElementById('fTxAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const invoiceInput=document.getElementById('fTxInvoice');
+  if(invoiceInput?.files?.[0]){
+    t.invoiceName=invoiceInput.files[0].name;
+    t.invoiceImage=await readFileAsDataURL(invoiceInput.files[0]);
+  }
+  t.type=currentTxType;
+  t.amount=amount;
+  t.projectId=document.getElementById('fTxProject').value;
+  t.desc=document.getElementById('fTxDesc').value.trim();
+  t.partyName=document.getElementById('fTxParty').value.trim();
+  t.date=document.getElementById('fTxDate').value;
+  closeModal();renderAll();toast('تم حفظ التعديل');
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+function viewInvoice(txid){
+  const tx=db.transactions.find(t=>t.id===txid);
+  if(!tx?.invoiceImage)return toast('لا توجد فاتورة');
+  openModal('فاتورة الحركة',`<div class="panel" style="text-align:center;"><div class="project-meta">${esc(tx.invoiceName||'صورة الفاتورة')}</div><img src="${tx.invoiceImage}" alt="فاتورة" style="max-width:100%;border-radius:14px;margin-top:10px"></div>`);
+}
+function printProjectPdf(pid){
+  const p=projectById(pid), s=projectStats(pid);
+  const rows=s.tx.sort((a,b)=>b.created-a.created).map(t=>`
+      <tr>
+        <td>${t.date}</td>
+        <td>${typeLabel(t.type)}</td>
+        <td>${esc(t.desc||'-')}</td>
+        <td>${esc(t.partyName||'-')}</td>
+        <td class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${fmt(t.amount)}</td>
+      </tr>
+    `).join('')||'<tr><td colspan="5" class="empty">لا توجد حركات</td></tr>';
+  const additions=p.additions||[];
+  const additionsRows=additions.map(a=>`<tr><td>${a.date||'-'}</td><td>${esc(a.desc||'-')}</td><td class="amount">+${fmt(a.amount)}</td></tr>`).join('');
+  const additionsHtml=additions.length?`<h3 style="margin-top:24px">زيادات الشغل</h3><table><thead><tr><th>التاريخ</th><th>البيان</th><th>المبلغ</th></tr></thead><tbody>${additionsRows}</tbody></table>`:'';
+  const mfg=p.manufacturing||[];
+  const mfgRows=mfg.map(m=>{
+    const paid=(m.payments||[]).reduce((a,x)=>a+x.amount,0);
+    const remaining=Math.max(0,(m.agreedAmount||0)-paid);
+    return `<tr><td>${esc(m.workshopName||'-')}</td><td>${esc(m.technicianName||'-')}</td><td>${m.date||'-'}</td><td class="amount">${fmt(m.agreedAmount)}</td><td class="amount">${fmt(paid)}</td><td class="amount">${fmt(remaining)}</td></tr>`;
+  }).join('');
+  const mfgHtml=mfg.length?`<h3 style="margin-top:24px">التصنيع والتركيب (ميكانيكا)</h3><table><thead><tr><th>الورشة</th><th>الفني</th><th>التاريخ</th><th>المتفق عليه</th><th>المدفوع</th><th>المتبقي</th></tr></thead><tbody>${mfgRows}</tbody></table><div class="small" style="margin-top:8px">إجمالي المدفوع فعلاً للورش ${money(s.mfgCosts)} هو المضاف ضمن التكاليف ومتخصم من الربح أعلاه (المتفق عليه ${money(mfg.reduce((a,m)=>a+(m.agreedAmount||0),0))} لسه ما اتخصمش لحد ما يتدفع).</div>`:'';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير المشروع ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2,h3{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}</style></head><body><h1>تقرير مشروع</h1><h2>${esc(p.name)}</h2><div class="small">${esc(p.clientName||'بدون عميل')} · تاريخ البداية ${esc(p.date||'غير محدد')}</div><div class="summary"><div><strong>القيمة الأساسية:</strong> ${money(p.value)}</div><div><strong>القيمة المتفق عليها (بعد الزيادات):</strong> ${money(projectValue(p))}</div></div><div class="summary"><div><strong>المتبقي:</strong> ${money(s.remaining)}</div><div><strong>المقبوض:</strong> ${money(s.inSum)}</div></div><div class="summary"><div><strong>التكاليف (حركات + تصنيع وتركيب):</strong> ${money(s.costs)}</div><div><strong>الربح:</strong> ${money(s.profit)}</div></div>${additionsHtml}${mfgHtml}<h3 style="margin-top:24px">حركات المشروع</h3><table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+// تصدير حساب ورشة/تصنيع واحدة بمفردها كـ PDF (لإرسالها للورشة أو الفني منفصلة عن حساب المشروع كله)
+function printWorkshopPdf(pid,mid){
+  const p=projectById(pid);
+  const m=manufacturingById(pid,mid); if(!m)return;
+  const payments=(m.payments||[]).slice().sort((a,b)=>b.created-a.created);
+  const paid=payments.reduce((a,x)=>a+x.amount,0);
+  const remaining=Math.max(0,(m.agreedAmount||0)-paid);
+  const rows=payments.map(pay=>`<tr><td>${pay.date||'-'}</td><td>${pay.time||'-'}</td><td class="amount">${fmt(pay.amount)}</td><td>${esc(pay.notes||'-')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">لا توجد دفعات مسجلة</td></tr>';
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>حساب ${esc(m.workshopName||'ورشة')}</title><style>body{font-family:Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:24px}h1,h2,h3{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:10px;border:1px solid #ccc;text-align:right}th{background:#f7f7f7}.amount{text-align:left}.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.summary div{padding:12px;border:1px solid #ccc;border-radius:10px;background:#fafafa}.small{color:#555;font-size:13px}.empty{text-align:center;color:#888;padding:20px}</style></head><body>
+  <h1>حساب تصنيع / تركيب</h1>
+  <h2>${esc(m.workshopName||'ورشة بدون اسم')}</h2>
+  ${m.technicianName?`<div class="small">الفني: ${esc(m.technicianName)}</div>`:''}
+  <div class="small">${p?('المشروع: '+esc(p.name)):''}${m.date?' · تاريخ الاتفاق '+esc(m.date):''}</div>
+  <div class="summary"><div><strong>المبلغ المتفق عليه:</strong> ${money(m.agreedAmount)}</div><div><strong>إجمالي المدفوع:</strong> ${money(paid)}</div></div>
+  <div class="summary"><div><strong>المتبقي:</strong> ${money(remaining)}</div><div><strong>ملاحظات:</strong> ${esc(m.notes||'-')}</div></div>
+  <h3 style="margin-top:24px">سجل الدفعات</h3>
+  <table><thead><tr><th>التاريخ</th><th>الوقت</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+function openProjectDetails(pid){
+  const p=projectById(pid),s=projectStats(pid);
+  const additions=p.additions||[];
+  const mfg=p.manufacturing||[];
+  openModal(`<span class="project-dot" style="background:${projectColor(p)}"></span>${esc(p.name)}`,`<div class="cards" style="grid-template-columns:repeat(2,1fr)">
+    <div class="card"><div class="label">القيمة المتفق عليها</div><div class="value">${dfmt(projectValue(p))}</div></div>
+    <div class="card"><div class="label">المقبوض</div><div class="value green">${dfmt(s.inSum)}</div></div>
+    <div class="card"><div class="label">التكاليف</div><div class="value red">${dfmt(s.costs)}</div></div>
+    <div class="card"><div class="label">الربح</div><div class="value yellow">${dfmt(s.profit)}</div></div>
+    <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(s.remaining)}</div></div>
+  </div>
+  ${additions.length?`<div class="small" style="margin-bottom:10px">القيمة الأساسية ${dmoney(p.value)} + زيادات الشغل ${dmoney(additions.reduce((a,x)=>a+x.amount,0))} = الإجمالي ${dmoney(projectValue(p))}</div>`:''}
+  ${s.mfgCosts>0?`<div class="small" style="margin-bottom:10px">التكاليف = حركات المشروع ${dmoney(s.txCosts)} + دفعات التصنيع والتركيب المدفوعة فعلاً ${dmoney(s.mfgCosts)} = إجمالي ${dmoney(s.costs)} (المتفق عليه مع الورشة لا يُخصم إلا لما يتدفع)</div>`:''}
+  <div class="panel"><div class="panel-title"><h3>زيادات الشغل</h3><button class="ghost-btn" onclick="openAdditionModal('${pid}')">+ زيادة شغل</button></div>
+  ${additions.length?additions.map(a=>`<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(a.desc||'زيادة شغل')}</div><div class="project-meta">${a.date||''}</div></div><div class="amount in">+${dmoney(a.amount)}</div><button class="danger" onclick="deleteAddition('${pid}','${a.id}')">حذف</button></div></div>`).join(''):'<div class="empty">لا توجد زيادات شغل مضافة</div>'}
+  </div>
+  <div class="panel"><div class="panel-title"><h3>التصنيع والتركيب (ميكانيكا)</h3><button class="ghost-btn" onclick="openManufacturingModal('${pid}')">+ تصنيع/تركيب جديد</button></div>
+  ${mfg.length?mfg.map(m=>{
+    const paid=(m.payments||[]).reduce((a,x)=>a+x.amount,0);
+    const remaining=Math.max(0,(m.agreedAmount||0)-paid);
+    return `<div class="project-card"><div class="project-row">
+      <div>
+        <div class="project-name">${esc(m.workshopName||'ورشة بدون اسم')}${m.technicianName?' — '+esc(m.technicianName):''}</div>
+        <div class="project-meta">المتفق عليه: ${dmoney(m.agreedAmount)} · المدفوع: ${dmoney(paid)} · المتبقي: ${dmoney(remaining)}${m.notes?' · '+esc(m.notes):''}</div>
+      </div>
+      <div>
+        <button class="ghost-btn" onclick="openManufacturingDetails('${pid}','${m.id}')">الدفعات (${(m.payments||[]).length})</button>
+        <button class="ghost-btn" onclick="printWorkshopPdf('${pid}','${m.id}')">تصدير حساب الورشة PDF</button>
+        <button class="danger" onclick="deleteManufacturing('${pid}','${m.id}')">حذف</button>
+      </div>
+    </div></div>`;
+  }).join(''):'<div class="empty">لا يوجد تصنيع أو تركيب مضاف</div>'}
+  </div>
+  <div class="panel"><div class="panel-title"><h3>حركات المشروع</h3><div><button class="ghost-btn" onclick="openProjectEdit('${pid}')">✎ تعديل</button><button class="ghost-btn" onclick="openQuickExpenseModal('${pid}')">+ مصروف مشروع</button><button class="ghost-btn" onclick="closeModal();openTransactionModal('${pid}')">+ حركة</button><button class="ghost-btn" onclick="printProjectPdf('${pid}')">تصدير PDF</button><button class="danger" onclick="openProjectDelete('${pid}')">حذف المشروع</button></div></div>
+  ${s.tx.sort((a,b)=>b.created-a.created).map(t=>{
+    const invoiceHtml=t.invoiceImage?`<button class="ghost-btn" onclick="viewInvoice('${t.id}')">عرض الفاتورة</button>`:'<span class="badge">بدون فاتورة</span>';
+    return `<div class="project-card"><div class="project-row"><div><div class="project-name">${esc(t.desc||typeLabel(t.type))}</div><div class="project-meta">${typeLabel(t.type)} · ${t.date}</div></div><div>${invoiceHtml} <button class="ghost-btn" onclick="openTxEdit('${t.id}')">تعديل</button> <button class="danger" onclick="deleteTx('${t.id}');openProjectDetails('${pid}')">حذف</button></div><div class="amount ${typeClass(t.type)}">${t.type==='payment'?'+':'-'}${dmoney(t.amount)}</div></div></div>`;
+  }).join('')||'<div class="empty">لا توجد حركات</div>'}</div>`);
+}
+function openAdditionModal(pid){
+  openModal('إضافة زيادة شغل',`<div class="form-grid">
+    <div class="form-group"><label>البيان (وصف الشغل الزيادة)</label><input id="fAddDesc" placeholder="مثال: تمديد سلك إضافي"></div>
+    <div class="form-group"><label>التكلفة المتفق عليها</label><input id="fAddAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fAddDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  </div><div class="form-actions"><button class="primary" onclick="saveAddition('${pid}')">إضافة</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function saveAddition(pid){
+  const amount=+document.getElementById('fAddAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const p=projectById(pid); if(!p)return;
+  if(!p.additions) p.additions=[];
+  p.additions.push({id:id(),desc:document.getElementById('fAddDesc').value.trim(),amount,date:document.getElementById('fAddDate').value,created:Date.now()});
+  renderAll();
+  openProjectDetails(pid);
+  toast('تمت إضافة الزيادة وتحديث قيمة المشروع');
+}
+function deleteAddition(pid,addId){
+  if(!confirm('حذف زيادة الشغل دي؟ ده هيقلل قيمة المشروع بنفس المبلغ.'))return;
+  const p=projectById(pid); if(!p)return;
+  p.additions=(p.additions||[]).filter(a=>a.id!==addId);
+  renderAll();
+  openProjectDetails(pid);
+  toast('تم الحذف');
+}
+function openManufacturingModal(pid){
+  openModal('إضافة تصنيع / تركيب',`<div class="form-grid">
+    <div class="form-group"><label>اسم الورشة</label><input id="fMfgWorkshop" placeholder="مثال: ورشة الأمل"></div>
+    <div class="form-group"><label>اسم الفني</label><input id="fMfgTech" placeholder="مثال: محمد علي"></div>
+    <div class="form-group"><label>المبلغ المتفق عليه</label><input id="fMfgAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fMfgDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fMfgNotes" placeholder="أي تفاصيل عن الشغل..."></textarea></div>
+  <div class="form-actions"><button class="primary" onclick="saveManufacturing('${pid}')">إضافة</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function saveManufacturing(pid){
+  const workshopName=document.getElementById('fMfgWorkshop').value.trim();
+  const technicianName=document.getElementById('fMfgTech').value.trim();
+  const agreedAmount=+document.getElementById('fMfgAmount').value||0;
+  if(!workshopName&&!technicianName)return toast('اكتب اسم الورشة أو اسم الفني');
+  if(!agreedAmount||agreedAmount<=0)return toast('اكتب مبلغ صحيح');
+  const p=projectById(pid); if(!p)return;
+  if(!p.manufacturing) p.manufacturing=[];
+  p.manufacturing.push({id:id(),workshopName,technicianName,agreedAmount,date:document.getElementById('fMfgDate').value,notes:document.getElementById('fMfgNotes').value.trim(),created:Date.now(),payments:[]});
+  renderAll();
+  openProjectDetails(pid);
+  toast('تمت إضافة التصنيع/التركيب');
+}
+function manufacturingById(pid,mid){
+  const p=projectById(pid); if(!p)return null;
+  return (p.manufacturing||[]).find(m=>m.id===mid);
+}
+function deleteManufacturing(pid,mid){
+  if(!confirm('حذف التصنيع/التركيب ده وكل الدفعات المرتبطة بيه؟'))return;
+  const p=projectById(pid); if(!p)return;
+  p.manufacturing=(p.manufacturing||[]).filter(m=>m.id!==mid);
+  renderAll();
+  openProjectDetails(pid);
+  toast('تم الحذف');
+}
+function openManufacturingDetails(pid,mid){
+  const m=manufacturingById(pid,mid); if(!m)return;
+  const payments=(m.payments||[]).slice().sort((a,b)=>b.created-a.created);
+  const paid=(m.payments||[]).reduce((a,x)=>a+x.amount,0);
+  const remaining=Math.max(0,(m.agreedAmount||0)-paid);
+  openModal(`دفعات: ${esc(m.workshopName||'ورشة')}${m.technicianName?' — '+esc(m.technicianName):''}`,`
+  <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+    <div class="card"><div class="label">المتفق عليه</div><div class="value">${dfmt(m.agreedAmount)}</div></div>
+    <div class="card"><div class="label">المدفوع</div><div class="value green">${dfmt(paid)}</div></div>
+    <div class="card"><div class="label">المتبقي</div><div class="value blue">${dfmt(remaining)}</div></div>
+  </div>
+  <div class="panel-title"><h3>سجل الدفعات</h3><div><button class="ghost-btn" onclick="printWorkshopPdf('${pid}','${mid}')">تصدير PDF</button> <button class="ghost-btn" onclick="openPaymentModal('${pid}','${mid}')">+ دفعة جديدة</button></div></div>
+  ${payments.length?payments.map(pay=>`<div class="project-card"><div class="project-row">
+    <div><div class="project-name">${dmoney(pay.amount)}</div><div class="project-meta">${pay.date||''} ${pay.time||''}${pay.notes?' · '+esc(pay.notes):''}</div></div>
+    <div><button class="danger" onclick="deletePayment('${pid}','${mid}','${pay.id}')">حذف</button></div>
+  </div></div>`).join(''):'<div class="empty">لا توجد دفعات مسجلة</div>'}
+  <div class="form-actions"><button class="ghost-btn" onclick="openProjectDetails('${pid}')">رجوع للمشروع</button></div>`);
+}
+function openPaymentModal(pid,mid){
+  const now=new Date();
+  const timeVal=now.toTimeString().slice(0,5);
+  openModal('تسجيل دفعة',`<div class="form-grid">
+    <div class="form-group"><label>المبلغ</label><input id="fPayAmount" type="number" placeholder="0"></div>
+    <div class="form-group"><label>التاريخ</label><input id="fPayDate" type="date" value="${now.toISOString().slice(0,10)}"></div>
+    <div class="form-group"><label>الوقت</label><input id="fPayTime" type="time" value="${timeVal}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fPayNotes" placeholder="ملاحظات على الدفعة..."></textarea></div>
+  <div class="form-actions"><button class="primary" onclick="savePayment('${pid}','${mid}')">حفظ الدفعة</button><button class="ghost-btn" onclick="openManufacturingDetails('${pid}','${mid}')">إلغاء</button></div>`);
+}
+function savePayment(pid,mid){
+  const amount=+document.getElementById('fPayAmount').value; if(!amount||amount<=0)return toast('اكتب مبلغ صحيح');
+  const m=manufacturingById(pid,mid); if(!m)return;
+  if(!m.payments) m.payments=[];
+  m.payments.push({id:id(),amount,date:document.getElementById('fPayDate').value,time:document.getElementById('fPayTime').value,notes:document.getElementById('fPayNotes').value.trim(),created:Date.now()});
+  renderAll();
+  openManufacturingDetails(pid,mid);
+  toast('تم تسجيل الدفعة');
+}
+function deletePayment(pid,mid,payId){
+  if(!confirm('حذف هذه الدفعة؟'))return;
+  const m=manufacturingById(pid,mid); if(!m)return;
+  m.payments=(m.payments||[]).filter(x=>x.id!==payId);
+  renderAll();
+  openManufacturingDetails(pid,mid);
+  toast('تم الحذف');
+}
+function openProjectEdit(pid){
+  const p=projectById(pid);
+  selectedProjectColor=projectColor(p);
+  openModal('تعديل المشروع',`<div class="form-grid">
+    <div class="form-group"><label>اسم المشروع / المصنع</label><input id="fProjectName" value="${esc(p.name)}"></div>
+    <div class="form-group"><label>اسم العميل</label><input id="fClientName" value="${esc(p.clientName||'')}"></div>
+    <div class="form-group"><label>القيمة المتفق عليها</label><input id="fProjectValue" type="number" value="${p.value||0}"></div>
+    <div class="form-group"><label>تاريخ البداية</label><input id="fProjectDate" type="date" value="${esc(p.date||'')}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>لون المشروع</label>
+    <div class="color-picker" id="colorPicker">${PROJECT_COLORS.map(c=>`<span class="color-dot${c===selectedProjectColor?' selected':''}" style="background:${c}" onclick="pickProjectColor('${c}',this)"></span>`).join('')}</div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>ملاحظات</label><textarea id="fProjectNotes">${esc(p.notes||'')}</textarea></div>
+  <div class="form-actions"><button class="primary" onclick="saveProjectEdit('${pid}')">حفظ التعديل</button><button class="ghost-btn" onclick="closeModal();openProjectDetails('${pid}')">إلغاء</button></div>`);
+}
+function saveProjectEdit(pid){
+  const p=projectById(pid); if(!p)return;
+  const name=document.getElementById('fProjectName').value.trim(); if(!name)return toast('اكتب اسم المشروع');
+  p.name=name;
+  p.clientName=document.getElementById('fClientName').value.trim();
+  p.value=+document.getElementById('fProjectValue').value||0;
+  p.date=document.getElementById('fProjectDate').value;
+  p.notes=document.getElementById('fProjectNotes').value;
+  p.color=selectedProjectColor;
+  closeModal();renderAll();toast('تم حفظ التعديل');
+}
+function openProjectDelete(pid){
+  openModal('حذف المشروع',`<div class="form-group"><label>أدخل كلمة المرور لحذف المشروع</label><input id="deleteProjectPassword" type="password" placeholder="كلمة المرور"></div><div class="form-actions"><button class="danger" onclick="confirmProjectDelete('${pid}')">حذف</button><button class="ghost-btn" onclick="closeModal()">إلغاء</button></div>`);
+}
+
+function confirmProjectDelete(pid){
+  const pw=document.getElementById('deleteProjectPassword').value.trim();
+  if(pw!==PAGE_PASSWORD){toast('كلمة المرور غير صحيحة');return;}
+  if(!confirm('هل أنت متأكد من حذف هذا المشروع وكل الحركات المرتبطة به؟'))return;
+  db.projects=db.projects.filter(x=>x.id!==pid);
+  db.transactions=db.transactions.filter(x=>x.projectId!==pid);
+  closeModal();renderAll();toast('تم حذف المشروع');
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+btn.dataset.page).classList.add('active');
+  renderUI();
+  document.querySelector('.sidebar').classList.remove('open'); // اقفل القائمة أوتوماتيك بعد اختيار صفحة على الموبايل
+}));
+document.getElementById('menuToggle').addEventListener('click',()=>{
+  document.querySelector('.sidebar').classList.toggle('open');
+});
+document.getElementById('projectSearch').addEventListener('input',renderProjects);
+document.getElementById('resetBtn').addEventListener('click',()=>{if(confirm('مسح كل البيانات نهائياً؟')){db={projects:[],clients:[],suppliers:[],transactions:[],quotes:[],portfolio:[],invoices:[],nextInvoiceNumber:1,extInvoices:[]};renderAll();toast('تم مسح البيانات')}})
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='engineer-accounts-backup.json';a.click();URL.revokeObjectURL(a.href);toast('تم تصدير النسخة الاحتياطية');
+});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+if(new URLSearchParams(location.search).get('portfolio')==='1'){
+  renderPublicGallery();
+} else {
+  initLock();
+}
 </script>
-<script src="assets/util.js"></script>
-<script src="assets/auth.js"></script>
-<script src="assets/data.js"></script>
-<script src="assets/docs.js"></script>
-<script src="assets/app.js"></script>
 </body>
 </html>
