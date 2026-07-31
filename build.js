@@ -128,6 +128,16 @@ const SAMPLE = {
     { id:'ac3', ts:Date.now() - 86400000, kind:'delete', text:'حذف مورد قديم',                 user:'المهندس' },
     { id:'ac4', ts:Date.now() - 90000000, kind:'auth',   text:'تسجيل دخول',                    user:'المهندس' }
   ],
+  accounts: [
+    { id:'ac_cib',  name:'CIB',  color:'#6ba9df', notes:'حساب جاري', created:1 },
+    { id:'ac_cash', name:'كاش',  color:'#4fb883', notes:'',          created:2 }
+  ],
+  accountTx: [
+    { id:'at1', accountId:'ac_cib',  toAccountId:'', type:'deposit',  amount:150000, date:'2026-06-01', notes:'رصيد افتتاحي', created:1 },
+    { id:'at2', accountId:'ac_cib',  toAccountId:'', type:'withdraw', amount:20000,  date:'2026-06-18', notes:'مصاريف شخصية', created:2 },
+    { id:'at3', accountId:'ac_cash', toAccountId:'', type:'deposit',  amount:12000,  date:'2026-07-02', notes:'',            created:3 },
+    { id:'at4', accountId:'ac_cib',  toAccountId:'ac_cash', type:'transfer', amount:8000, date:'2026-07-21', notes:'تحويل للكاش', created:4 }
+  ],
   users: [{ email:'accountant@smartrun.app', name:'المحاسب', role:'محاسب' }],
   nextInvoiceNumber: 13,
   settings: {}

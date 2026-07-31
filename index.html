@@ -1066,6 +1066,8 @@ select{
         <span class="nav-icon" aria-hidden="true">🏗️</span><span>المشاريع</span><span class="nav-badge"></span></button>
       <button type="button" class="nav-btn" data-page="transactions">
         <span class="nav-icon" aria-hidden="true">💰</span><span>كل الحركات</span><span class="nav-badge"></span></button>
+      <button type="button" class="nav-btn" data-page="accounts">
+        <span class="nav-icon" aria-hidden="true">🏦</span><span>حساباتي</span><span class="nav-badge"></span></button>
       <button type="button" class="nav-btn" data-page="reports">
         <span class="nav-icon" aria-hidden="true">📈</span><span>التقارير</span></button>
 
@@ -1294,6 +1296,50 @@ select{
             </table>
           </div>
           <div id="txMore" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- ===== حساباتي (CIB، كاش، …) ===== -->
+      <section class="page" id="page-accounts" aria-labelledby="h-accounts">
+        <div class="page-head">
+          <div><h2 id="h-accounts">حساباتي</h2>
+            <p class="page-sub">أرصدة الحسابات والمحافظ — إيداع وسحب وتحويل</p></div>
+          <div class="page-head-actions">
+            <button type="button" class="btn btn-primary" data-act="acct-new">+ حساب جديد</button>
+            <button type="button" class="btn btn-ghost" data-act="acct-tx-new" data-kind="deposit">+ إيداع</button>
+            <button type="button" class="btn btn-ghost" data-act="acct-tx-new" data-kind="withdraw">− سحب</button>
+          </div>
+        </div>
+
+        <div class="stat-grid" id="acctStats"></div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>الحسابات</h3><span class="muted" id="acctCount"></span></div>
+          <div id="acctList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>حركات الحسابات</h3><span class="muted" id="acctTxCount"></span></div>
+          <div class="search-row">
+            <span class="search-input-wrap">
+              <input id="acctTxSearch" type="search" placeholder="بحث بالبيان أو اسم الحساب..."
+                     aria-label="بحث في حركات الحسابات">
+            </span>
+            <select id="acctTxFilter" aria-label="تصفية حسب الحساب" style="max-width:220px">
+              <option value="">كل الحسابات</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <caption class="sr-only">جدول حركات الحسابات</caption>
+              <thead><tr>
+                <th scope="col">التاريخ</th><th scope="col">النوع</th><th scope="col">الحساب</th>
+                <th scope="col">البيان</th><th scope="col">المبلغ</th>
+                <th scope="col"><span class="sr-only">إجراءات</span></th>
+              </tr></thead>
+              <tbody id="acctTxBody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -2481,6 +2527,9 @@ const Data = (function(){
       projects:[], clients:[], suppliers:[], transactions:[],
       quotes:[], invoices:[], extInvoices:[], portfolio:[],
       activity:[], users:[],
+      // الحسابات والمحافظ (CIB، كاش، …) وحركات الإيداع/السحب/التحويل
+      // بتاعتها. مستقلة تماماً عن transactions بتاعة المشاريع.
+      accounts:[], accountTx:[],
       nextInvoiceNumber:1,
       settings:{},
       schemaVersion:2
@@ -2505,6 +2554,8 @@ const Data = (function(){
       portfolio:    asArray(raw.portfolio),
       activity:     asArray(raw.activity),
       users:        asArray(raw.users),
+      accounts:     asArray(raw.accounts),
+      accountTx:    asArray(raw.accountTx),
       nextInvoiceNumber: Math.max(1, asNumber(raw.nextInvoiceNumber, 1)),
       settings:     (raw.settings && typeof raw.settings === 'object') ? raw.settings : {},
       schemaVersion: 2
@@ -2528,6 +2579,15 @@ const Data = (function(){
     });
     out.clients.forEach(c => { c.balance = asNumber(c.balance, 0); });
     out.suppliers.forEach(s => { s.balance = asNumber(s.balance, 0); });
+
+    /* حركات الحسابات: الرصيد بيتحسب من الحركات دي مش متخزن، عشان
+       مايحصلش اختلاف بين الرصيد المخزن ومجموع الحركات. */
+    out.accountTx.forEach(t => {
+      t.amount  = Math.abs(asNumber(t.amount, 0));
+      t.created = asNumber(t.created, 0);
+      if (t.type !== 'deposit' && t.type !== 'withdraw' && t.type !== 'transfer') t.type = 'deposit';
+      if (t.type !== 'transfer') t.toAccountId = '';
+    });
     [out.quotes, out.invoices, out.extInvoices].forEach(list => {
       list.forEach(doc => {
         doc.items = asArray(doc.items);
@@ -2768,7 +2828,8 @@ function emptyDb(){
   return {
     projects:[], clients:[], suppliers:[], transactions:[],
     quotes:[], invoices:[], extInvoices:[], portfolio:[],
-    activity:[], users:[], nextInvoiceNumber:1, settings:{}, schemaVersion:2
+    activity:[], users:[], accounts:[], accountTx:[],
+    nextInvoiceNumber:1, settings:{}, schemaVersion:2
   };
 }
 
@@ -3905,6 +3966,185 @@ function renderContacts(kind){
   ).join('');
 }
 
+/* ============================================================
+   الحسابات والمحافظ (CIB، كاش، …)
+   ------------------------------------------------------------
+   مستقلة تماماً عن db.transactions بتاعة المشاريع — دي محفظة
+   شخصية بتضيف وتسحب منها بإيدك.
+
+   الرصيد مابيتخزنش، بيتحسب من الحركات في كل مرة. كده مستحيل
+   يحصل اختلاف بين الرصيد المعروض ومجموع الحركات، ولو مسحت
+   حركة الرصيد بيتظبط لوحده.
+   ============================================================ */
+const ACCT_TX_TYPES = {
+  deposit:  { label:'إيداع',  icon:'📥', sign:+1 },
+  withdraw: { label:'سحب',    icon:'📤', sign:-1 },
+  transfer: { label:'تحويل',  icon:'🔄', sign: 0 }
+};
+
+function accountById(id){ return (db.accounts || []).find(a => a.id === id) || null; }
+
+function accountBalance(id){
+  return (db.accountTx || []).reduce((sum, t) => {
+    const amt = +t.amount || 0;
+    if (t.type === 'transfer') {
+      if (t.accountId === id)   return sum - amt;   // خارج من الحساب ده
+      if (t.toAccountId === id) return sum + amt;   // داخل للحساب ده
+      return sum;
+    }
+    if (t.accountId !== id) return sum;
+    return sum + (t.type === 'deposit' ? amt : -amt);
+  }, 0);
+}
+
+/* التحويل بين حسابين مابيغيّرش الإجمالي، فبيتشال من الحساب */
+function accountsTotal(){
+  return (db.accounts || []).reduce((s, a) => s + accountBalance(a.id), 0);
+}
+
+function acctTxLabel(t){
+  const def = ACCT_TX_TYPES[t.type] || ACCT_TX_TYPES.deposit;
+  if (t.type !== 'transfer') return def.icon + ' ' + def.label;
+  const to = accountById(t.toAccountId);
+  return def.icon + ' تحويل ← ' + (to ? to.name : 'حساب محذوف');
+}
+
+/* المبلغ بالنسبة لحساب معيّن: موجب لو داخل، سالب لو خارج */
+function acctTxSignedFor(t, accountId){
+  const amt = +t.amount || 0;
+  if (t.type === 'transfer') return t.toAccountId === accountId ? amt : -amt;
+  return t.type === 'deposit' ? amt : -amt;
+}
+
+function renderAccounts(){
+  const accounts = db.accounts || [];
+  const statsEl  = byId('acctStats');
+  const listEl   = byId('acctList');
+  if (!listEl) return;
+
+  /* ---- بطاقات الملخص ---- */
+  if (statsEl) {
+    const total = accountsTotal();
+    const inSum = (db.accountTx || [])
+      .filter(t => t.type === 'deposit').reduce((s, t) => s + (+t.amount || 0), 0);
+    const outSum = (db.accountTx || [])
+      .filter(t => t.type === 'withdraw').reduce((s, t) => s + (+t.amount || 0), 0);
+
+    statsEl.innerHTML =
+      '<div class="stat-card is-violet">' +
+        '<div class="stat-head"><span class="stat-icon" aria-hidden="true">🏦</span>' +
+          '<span class="stat-label">إجمالي الأرصدة</span></div>' +
+        '<div class="stat-value">' + esc(dmoney(total)) + '</div>' +
+        '<div class="stat-foot">' + accounts.length + ' حساب</div>' +
+      '</div>' +
+      '<div class="stat-card is-green">' +
+        '<div class="stat-head"><span class="stat-icon" aria-hidden="true">📥</span>' +
+          '<span class="stat-label">إجمالي الإيداعات</span></div>' +
+        '<div class="stat-value green">' + esc(dmoney(inSum)) + '</div>' +
+      '</div>' +
+      '<div class="stat-card is-red">' +
+        '<div class="stat-head"><span class="stat-icon" aria-hidden="true">📤</span>' +
+          '<span class="stat-label">إجمالي السحوبات</span></div>' +
+        '<div class="stat-value red">' + esc(dmoney(outSum)) + '</div>' +
+      '</div>';
+  }
+
+  setText('acctCount', accounts.length ? accounts.length + ' حساب' : '');
+
+  /* ---- قائمة الحسابات ---- */
+  if (!accounts.length) {
+    listEl.innerHTML = emptyState('🏦', 'لسه مفيش حسابات',
+      'ابدأ بإضافة حساب البنك أو المحفظة اللي بتسحب وتضيف منها.') +
+      '<div class="form-actions" style="justify-content:center">' +
+        '<button type="button" class="btn btn-primary" data-act="acct-new" data-name="CIB">+ إضافة حساب CIB</button>' +
+      '</div>';
+  } else {
+    listEl.innerHTML = accounts.map(a => {
+      const bal = accountBalance(a.id);
+      const moves = (db.accountTx || []).filter(t =>
+        t.accountId === a.id || t.toAccountId === a.id).length;
+      return '<div class="list-item has-accent" style="border-inline-start-color:' + escAttr(a.color || 'var(--blue)') + '">' +
+        '<div class="li-main">' +
+          '<div class="li-title">' + esc(a.name) + '</div>' +
+          '<div class="li-meta">' + moves + ' حركة' +
+            (a.notes ? ' · ' + esc(a.notes) : '') + '</div>' +
+        '</div>' +
+        '<div class="li-side">' +
+          '<span class="amount ' + (bal < 0 ? 'out' : 'in') + '">' + esc(dmoney(bal)) + '</span>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-act="acct-tx-new" data-kind="deposit" data-id="' + escAttr(a.id) + '">إيداع</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-act="acct-tx-new" data-kind="withdraw" data-id="' + escAttr(a.id) + '">سحب</button>' +
+          (accounts.length > 1
+            ? '<button type="button" class="btn btn-ghost btn-sm" data-act="acct-tx-new" data-kind="transfer" data-id="' + escAttr(a.id) + '">تحويل</button>'
+            : '') +
+          '<button type="button" class="btn btn-ghost btn-sm" data-act="acct-edit" data-id="' + escAttr(a.id) + '">تعديل</button>' +
+          '<button type="button" class="btn btn-danger btn-sm" data-act="acct-del" data-id="' + escAttr(a.id) + '">حذف</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  renderAccountTx();
+}
+
+function renderAccountTx(){
+  const body = byId('acctTxBody');
+  if (!body) return;
+
+  /* فلتر الحسابات — بنعيد بناءه بس لما القائمة تتغير فعلاً، عشان
+     مانضيّعش تركيز المستخدم مع كل إعادة رسم */
+  const sel = byId('acctTxFilter');
+  if (sel) {
+    const wanted = '<option value="">كل الحسابات</option>' +
+      (db.accounts || []).map(a =>
+        '<option value="' + escAttr(a.id) + '">' + esc(a.name) + '</option>').join('');
+    if (sel.innerHTML !== wanted) {
+      const keep = sel.value;
+      sel.innerHTML = wanted;
+      sel.value = (db.accounts || []).some(a => a.id === keep) ? keep : '';
+    }
+  }
+
+  const q       = (byId('acctTxSearch') ? byId('acctTxSearch').value : '').trim().toLowerCase();
+  const filter  = sel ? sel.value : '';
+
+  let arr = (db.accountTx || []).slice().sort((a, b) => (b.created || 0) - (a.created || 0));
+
+  if (filter) arr = arr.filter(t => t.accountId === filter || t.toAccountId === filter);
+  if (q) {
+    arr = arr.filter(t => {
+      const from = accountById(t.accountId);
+      const to   = accountById(t.toAccountId);
+      return ((t.notes || '') + ' ' + (from ? from.name : '') + ' ' + (to ? to.name : ''))
+             .toLowerCase().includes(q);
+    });
+  }
+
+  setText('acctTxCount', arr.length ? arr.length + ' حركة' : '');
+
+  if (!arr.length) {
+    body.innerHTML = '<tr><td colspan="6">' +
+      emptyState('💸', q || filter ? 'مفيش حركات مطابقة' : 'لا توجد حركات',
+                 q || filter ? 'جرب بحث تاني.' : 'اعمل إيداع أو سحب من الحساب.') +
+      '</td></tr>';
+    return;
+  }
+
+  body.innerHTML = arr.map(t => {
+    const from = accountById(t.accountId);
+    const signed = t.type === 'transfer' ? -(+t.amount || 0) : acctTxSignedFor(t, t.accountId);
+    return '<tr>' +
+      '<td>' + esc(t.date || '—') + '</td>' +
+      '<td>' + esc(acctTxLabel(t)) + '</td>' +
+      '<td>' + esc(from ? from.name : 'حساب محذوف') + '</td>' +
+      '<td>' + esc(t.notes || '—') + '</td>' +
+      '<td><span class="amount ' + (signed < 0 ? 'out' : 'in') + '">' +
+        esc(dmoney(Math.abs(signed))) + '</span></td>' +
+      '<td><button type="button" class="btn btn-danger btn-sm" data-act="acct-tx-del" data-id="' +
+        escAttr(t.id) + '">حذف</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
 /* ---------- كل الحركات ---------- */
 function renderTransactions(){
   const body = byId('allTransactions');
@@ -4081,6 +4321,7 @@ const PAGE_RENDERERS = {
   clients:     () => renderContacts('client'),
   suppliers:   () => renderContacts('supplier'),
   transactions:renderTransactions,
+  accounts:    renderAccounts,
   reports:     renderReports,
   quotes:      () => renderDocList('quote'),
   invoices:    () => renderDocList('invoice'),
@@ -4094,7 +4335,8 @@ const PAGE_RENDERERS = {
 
 const PAGE_TITLES = {
   dashboard:'لوحة التحكم', projects:'المشاريع', clients:'العملاء', suppliers:'الموردين',
-  transactions:'كل الحركات', reports:'التقارير', quotes:'عروض الأسعار', invoices:'الفواتير',
+  transactions:'كل الحركات', accounts:'حساباتي',
+  reports:'التقارير', quotes:'عروض الأسعار', invoices:'الفواتير',
   extInvoices:'الفواتير الخارجية', portfolio:'سابقة أعمال', activity:'سجل النشاط',
   settings:'الإعدادات', profile:'الملف الشخصي', users:'إدارة المستخدمين'
 };
@@ -4116,6 +4358,7 @@ function updateNavCounts(){
     clients: db.clients.length,
     suppliers: db.suppliers.length,
     transactions: db.transactions.length,
+    accounts: (db.accounts || []).length,
     quotes: (db.quotes || []).length,
     invoices: (db.invoices || []).length,
     extInvoices: (db.extInvoices || []).length,
@@ -4737,6 +4980,210 @@ Actions['contact-del'] = async function(el){
   if (kind === 'client') db.clients = db.clients.filter(x => x.id !== c.id);
   else                   db.suppliers = db.suppliers.filter(x => x.id !== c.id);
   Data.logActivity('delete', 'حذف ' + (kind === 'client' ? 'عميل' : 'مورد') + ': ' + c.name);
+  saveAndRender('تم الحذف');
+};
+
+/* ============================================================
+   8ب. الحسابات والمحافظ
+   ============================================================ */
+function accountFormHtml(a){
+  const colors = PROJECT_COLORS.map((c, i) =>
+    '<option value="' + escAttr(c) + '"' +
+    ((a ? a.color === c : i === 0) ? ' selected' : '') + '>لون ' + (i + 1) + '</option>').join('');
+
+  return '<div class="form-grid">' +
+    '<div class="field"><label for="fAcctName">اسم الحساب</label>' +
+      '<input id="fAcctName" value="' + escAttr(a ? a.name : '') + '" placeholder="CIB"></div>' +
+    '<div class="field"><label for="fAcctColor">اللون</label>' +
+      '<select id="fAcctColor">' + colors + '</select></div>' +
+    '<div class="field"><label for="fAcctNotes">ملاحظات</label>' +
+      '<input id="fAcctNotes" value="' + escAttr(a ? (a.notes || '') : '') + '" placeholder="رقم الحساب مثلاً"></div>' +
+  '</div>' +
+  (a ? '' :
+    '<div class="field"><label for="fAcctOpening">الرصيد الافتتاحي (اختياري)</label>' +
+      '<input id="fAcctOpening" type="number" step="any" value="0">' +
+      '<span class="muted" style="font-size:12px">هيتسجل كأول حركة إيداع في الحساب.</span></div>');
+}
+
+Actions['acct-new'] = function(el){
+  Modal.open('إضافة حساب',
+    accountFormHtml(null) +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="acct-save">حفظ</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">إلغاء</button>' +
+    '</div>');
+  // زر "إضافة حساب CIB" في شاشة البداية بيبعت الاسم جاهز
+  if (el && el.dataset.name && byId('fAcctName')) byId('fAcctName').value = el.dataset.name;
+};
+
+Actions['acct-edit'] = function(el){
+  const a = accountById(el.dataset.id);
+  if (!a) return;
+  Modal.open('تعديل حساب',
+    accountFormHtml(a) +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="acct-save" data-id="' + escAttr(a.id) + '">حفظ التعديل</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">إلغاء</button>' +
+    '</div>');
+};
+
+Actions['acct-save'] = function(el){
+  const id   = el.dataset.id;
+  const name = byId('fAcctName').value.trim();
+  if (!name) { Toast.warn('اكتب اسم الحساب.'); byId('fAcctName').focus(); return; }
+
+  const dup = (db.accounts || []).some(a => a.id !== id &&
+    a.name.trim().toLowerCase() === name.toLowerCase());
+  if (dup) { Toast.warn('فيه حساب بنفس الاسم بالفعل.'); byId('fAcctName').focus(); return; }
+
+  const payload = {
+    name,
+    color: byId('fAcctColor').value,
+    notes: byId('fAcctNotes').value.trim()
+  };
+
+  if (id) {
+    const a = accountById(id);
+    if (a) Object.assign(a, payload);
+    Data.logActivity('update', 'تعديل حساب: ' + name);
+  } else {
+    const acct = Object.assign({ id: uid(), created: Date.now() }, payload);
+    db.accounts.push(acct);
+
+    const opening = +byId('fAcctOpening').value || 0;
+    if (opening) {
+      db.accountTx.push({
+        id: uid(), accountId: acct.id, toAccountId: '',
+        type: opening > 0 ? 'deposit' : 'withdraw',
+        amount: Math.abs(opening), date: today(),
+        notes: 'رصيد افتتاحي', created: Date.now()
+      });
+    }
+    Data.logActivity('create', 'إضافة حساب: ' + name);
+  }
+
+  Modal.close();
+  saveAndRender('تم الحفظ');
+};
+
+Actions['acct-del'] = async function(el){
+  const a = accountById(el.dataset.id);
+  if (!a) return;
+
+  const moves = (db.accountTx || []).filter(t =>
+    t.accountId === a.id || t.toAccountId === a.id);
+
+  const ok = await confirmAction({
+    title: 'حذف الحساب',
+    message: moves.length
+      ? 'هتحذف "' + a.name + '" و' + moves.length + ' حركة مرتبطة بيه نهائياً.'
+      : 'هتحذف "' + a.name + '" نهائياً.',
+    confirmLabel: 'حذف'
+  });
+  if (!ok) return;
+
+  db.accounts   = db.accounts.filter(x => x.id !== a.id);
+  db.accountTx  = db.accountTx.filter(t =>
+    t.accountId !== a.id && t.toAccountId !== a.id);
+  Data.logActivity('delete', 'حذف حساب: ' + a.name);
+  saveAndRender('تم الحذف');
+};
+
+/* ---------- إيداع / سحب / تحويل ---------- */
+Actions['acct-tx-new'] = function(el){
+  const accounts = db.accounts || [];
+  if (!accounts.length) { Toast.warn('أضف حساب الأول.'); return; }
+
+  const kind = ACCT_TX_TYPES[el.dataset.kind] ? el.dataset.kind : 'deposit';
+  if (kind === 'transfer' && accounts.length < 2) {
+    Toast.warn('التحويل محتاج حسابين على الأقل.');
+    return;
+  }
+
+  const preset = el.dataset.id || accounts[0].id;
+  const opts = (skipId) => accounts
+    .filter(a => a.id !== skipId)
+    .map(a => '<option value="' + escAttr(a.id) + '"' +
+      (a.id === preset ? ' selected' : '') + '>' + esc(a.name) + '</option>').join('');
+
+  const titles = { deposit:'إيداع في حساب', withdraw:'سحب من حساب', transfer:'تحويل بين حسابين' };
+
+  Modal.open(titles[kind],
+    '<div class="form-grid">' +
+      '<div class="field"><label for="fAtxAccount">' +
+        (kind === 'transfer' ? 'من حساب' : 'الحساب') + '</label>' +
+        '<select id="fAtxAccount">' + opts(null) + '</select></div>' +
+      (kind === 'transfer'
+        ? '<div class="field"><label for="fAtxTo">إلى حساب</label>' +
+            '<select id="fAtxTo">' + accounts.filter(a => a.id !== preset)
+              .map(a => '<option value="' + escAttr(a.id) + '">' + esc(a.name) + '</option>').join('') +
+            '</select></div>'
+        : '') +
+      '<div class="field"><label for="fAtxAmount">المبلغ</label>' +
+        '<input id="fAtxAmount" type="number" step="any" min="0" placeholder="0"></div>' +
+      '<div class="field"><label for="fAtxDate">التاريخ</label>' +
+        '<input id="fAtxDate" type="date" value="' + escAttr(today()) + '"></div>' +
+    '</div>' +
+    '<div class="field"><label for="fAtxNotes">البيان</label>' +
+      '<input id="fAtxNotes" placeholder="سبب الإيداع أو السحب"></div>' +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="acct-tx-save" data-kind="' + kind + '">حفظ</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">إلغاء</button>' +
+    '</div>');
+
+  const amt = byId('fAtxAmount');
+  if (amt) amt.focus();
+};
+
+Actions['acct-tx-save'] = function(el){
+  const kind   = ACCT_TX_TYPES[el.dataset.kind] ? el.dataset.kind : 'deposit';
+  const from   = byId('fAtxAccount').value;
+  const amount = +byId('fAtxAmount').value || 0;
+
+  if (amount <= 0) { Toast.warn('اكتب مبلغ أكبر من صفر.'); byId('fAtxAmount').focus(); return; }
+
+  const to = kind === 'transfer' ? byId('fAtxTo').value : '';
+  if (kind === 'transfer') {
+    if (!to)        { Toast.warn('اختار الحساب المحوَّل إليه.'); return; }
+    if (to === from){ Toast.warn('مينفعش تحوّل لنفس الحساب.'); return; }
+  }
+
+  /* تحذير من غير منع: ممكن يكون فيه رصيد فعلي مش متسجل هنا */
+  if (kind !== 'deposit' && accountBalance(from) < amount) {
+    Toast.warn('المبلغ أكبر من الرصيد المسجل — الرصيد هيبقى بالسالب.');
+  }
+
+  db.accountTx.push({
+    id: uid(),
+    accountId: from,
+    toAccountId: to,
+    type: kind,
+    amount,
+    date: byId('fAtxDate').value || today(),
+    notes: byId('fAtxNotes').value.trim(),
+    created: Date.now()
+  });
+
+  const acct = accountById(from);
+  Data.logActivity('create',
+    ACCT_TX_TYPES[kind].label + ' ' + fmt(amount) + ' — ' + (acct ? acct.name : ''));
+
+  Modal.close();
+  saveAndRender('تم التسجيل');
+};
+
+Actions['acct-tx-del'] = async function(el){
+  const t = (db.accountTx || []).find(x => x.id === el.dataset.id);
+  if (!t) return;
+  const ok = await confirmAction({
+    title: 'حذف الحركة',
+    message: 'هتحذف حركة ' + ACCT_TX_TYPES[t.type].label + ' بمبلغ ' + fmt(t.amount) +
+             '. الرصيد هيتظبط تلقائياً.',
+    confirmLabel: 'حذف'
+  });
+  if (!ok) return;
+  db.accountTx = db.accountTx.filter(x => x.id !== t.id);
+  Data.logActivity('delete', 'حذف حركة حساب بمبلغ ' + fmt(t.amount));
   saveAndRender('تم الحذف');
 };
 
@@ -5528,6 +5975,7 @@ function initEventDelegation(){
 
     if (el.id === 'projectSearch') { renderProjects(); return; }
     if (el.id === 'txSearch') { txPageSize = 50; renderTransactions(); return; }
+    if (el.id === 'acctTxSearch') { renderAccountTx(); return; }
     if (el.id === 'pwNew') {
       const s = Auth.passwordStrength(el.value);
       const out = byId('pwStrength');
@@ -5541,6 +5989,18 @@ function initEventDelegation(){
 
   document.addEventListener('change', function(e){
     if (e.target.id === 'txFilterType') { txPageSize = 50; renderTransactions(); }
+    if (e.target.id === 'acctTxFilter') { renderAccountTx(); }
+
+    // في نافذة التحويل: لما تغيّر "من حساب" نشيله من قائمة "إلى حساب"
+    if (e.target.id === 'fAtxAccount') {
+      const to = byId('fAtxTo');
+      if (!to) return;
+      const keep = to.value;
+      to.innerHTML = (db.accounts || [])
+        .filter(a => a.id !== e.target.value)
+        .map(a => '<option value="' + escAttr(a.id) + '">' + esc(a.name) + '</option>').join('');
+      if (Array.from(to.options).some(o => o.value === keep)) to.value = keep;
+    }
   });
 }
 
