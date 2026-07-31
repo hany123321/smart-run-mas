@@ -994,8 +994,12 @@ select{
         <div class="field">
           <label for="loginPass">كلمة المرور</label>
           <div class="pw-wrap">
+            <!-- autocapitalize="none": بعض لوحات مفاتيح الأندرويد بتكبّر أول
+                 حرف حتى في خانة كلمة المرور، فتفشل من غير ما تعرف السبب -->
             <input id="loginPass" name="password" type="password" dir="ltr"
-                   autocomplete="current-password" placeholder="••••••••" required>
+                   autocomplete="current-password" autocapitalize="none"
+                   autocorrect="off" spellcheck="false"
+                   placeholder="••••••••" required>
             <button type="button" class="pw-toggle" data-target="loginPass"
                     aria-label="إظهار كلمة المرور">👁️</button>
           </div>
@@ -1488,14 +1492,16 @@ select{
               <div class="field">
                 <label for="pwCurrent">كلمة المرور الحالية</label>
                 <div class="pw-wrap">
-                  <input id="pwCurrent" type="password" dir="ltr" autocomplete="current-password">
+                  <input id="pwCurrent" type="password" dir="ltr" autocomplete="current-password"
+                         autocapitalize="none" autocorrect="off" spellcheck="false">
                   <button type="button" class="pw-toggle" data-target="pwCurrent" aria-label="إظهار كلمة المرور">👁️</button>
                 </div>
               </div>
               <div class="field">
                 <label for="pwNew">كلمة المرور الجديدة</label>
                 <div class="pw-wrap">
-                  <input id="pwNew" type="password" dir="ltr" autocomplete="new-password">
+                  <input id="pwNew" type="password" dir="ltr" autocomplete="new-password"
+                         autocapitalize="none" autocorrect="off" spellcheck="false">
                   <button type="button" class="pw-toggle" data-target="pwNew" aria-label="إظهار كلمة المرور">👁️</button>
                 </div>
                 <span class="hint" id="pwStrength" aria-live="polite"></span>
@@ -1503,7 +1509,8 @@ select{
               <div class="field">
                 <label for="pwConfirm">تأكيد كلمة المرور الجديدة</label>
                 <div class="pw-wrap">
-                  <input id="pwConfirm" type="password" dir="ltr" autocomplete="new-password">
+                  <input id="pwConfirm" type="password" dir="ltr" autocomplete="new-password"
+                         autocapitalize="none" autocorrect="off" spellcheck="false">
                   <button type="button" class="pw-toggle" data-target="pwConfirm" aria-label="إظهار كلمة المرور">👁️</button>
                 </div>
                 <span class="err" id="pwError" role="alert"></span>
