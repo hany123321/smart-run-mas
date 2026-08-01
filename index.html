@@ -360,6 +360,15 @@ a:hover{text-decoration:underline}
 .btn-danger{background:transparent;color:var(--red);border-color:var(--red-tint)}
 .btn-danger:hover:not(:disabled){background:var(--red-tint);border-color:var(--red)}
 
+.btn-tone-blue{background:transparent;color:var(--blue);border-color:var(--blue-tint)}
+.btn-tone-blue:hover:not(:disabled){background:var(--blue-tint);border-color:var(--blue)}
+.btn-tone-violet{background:transparent;color:var(--violet);border-color:var(--violet-tint)}
+.btn-tone-violet:hover:not(:disabled){background:var(--violet-tint);border-color:var(--violet)}
+.btn-tone-yellow{background:transparent;color:var(--yellow);border-color:var(--yellow-tint)}
+.btn-tone-yellow:hover:not(:disabled){background:var(--yellow-tint);border-color:var(--yellow)}
+.btn-tone-green{background:transparent;color:var(--green);border-color:var(--green-tint)}
+.btn-tone-green:hover:not(:disabled){background:var(--green-tint);border-color:var(--green)}
+
 .btn-icon{padding:9px;width:38px;height:38px;flex-shrink:0}
 .btn-sm{padding:6px var(--sp-3);font-size:12.5px;border-radius:var(--r-sm)}
 .btn-block{width:100%}
@@ -4759,6 +4768,14 @@ function renderProjectDetailPage(){
         ' (المتفق عليه مع الورشة لا يُخصم إلا لما يتدفع)</div>'
       : '') +
 
+    '<div class="panel"><div class="panel-head"><h3>حركات المشروع</h3><div class="panel-actions">' +
+      '<button type="button" class="btn btn-tone-blue btn-sm" data-act="tx-new" data-pid="' + escAttr(pid) + '">+ حركة</button>' +
+      '<button type="button" class="btn btn-tone-violet btn-sm" data-act="project-edit" data-id="' + escAttr(pid) + '">✎ تعديل</button>' +
+      '<button type="button" class="btn btn-tone-yellow btn-sm" data-act="expense-new" data-pid="' + escAttr(pid) + '">+ مصروف</button>' +
+      '<button type="button" class="btn btn-tone-green btn-sm" data-act="project-print" data-id="' + escAttr(pid) + '">📄 PDF</button>' +
+      '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
+    '</div></div>' + txHtml + '</div>' +
+
     '<div class="panel"><div class="panel-head"><h3>زيادات الشغل</h3>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-act="addition-new" data-pid="' + escAttr(pid) + '">+ زيادة شغل</button>' +
     '</div>' + additionsHtml + '</div>' +
@@ -4767,15 +4784,7 @@ function renderProjectDetailPage(){
       '<button type="button" class="btn btn-ghost btn-sm" data-act="mfg-new" data-pid="' + escAttr(pid) + '">+ تصنيع/تركيب</button>' +
     '</div>' + mfgHtml + '</div>' +
 
-    techPanelHtml(p) +
-
-    '<div class="panel"><div class="panel-head"><h3>حركات المشروع</h3><div class="panel-actions">' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-act="project-edit" data-id="' + escAttr(pid) + '">✎ تعديل</button>' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-act="expense-new" data-pid="' + escAttr(pid) + '">+ مصروف</button>' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-act="tx-new" data-pid="' + escAttr(pid) + '">+ حركة</button>' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-act="project-print" data-id="' + escAttr(pid) + '">📄 PDF</button>' +
-      '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
-    '</div></div>' + txHtml + '</div>';
+    techPanelHtml(p);
 }
 
 /* ============================================================
