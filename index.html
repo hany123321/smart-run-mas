@@ -1233,6 +1233,19 @@ select{
         <div id="projectsPageList"></div>
       </section>
 
+      <!-- ===== تفاصيل المشروع (صفحة كاملة) ===== -->
+      <section class="page" id="page-project-detail" aria-labelledby="projectDetailTitle">
+        <div class="page-head">
+          <div>
+            <button type="button" class="btn btn-ghost btn-sm" data-act="back-to-dashboard" style="margin-bottom:10px">
+              <span aria-hidden="true">→</span> رجوع للوحة التحكم
+            </button>
+            <h2 id="projectDetailTitle">مشروع</h2>
+          </div>
+        </div>
+        <div id="projectDetailBody"></div>
+      </section>
+
       <!-- ===== العملاء ===== -->
       <section class="page" id="page-clients" aria-labelledby="h-clients">
         <div class="page-head">
@@ -3607,6 +3620,7 @@ Actions['pg-view'] = function(el){
 window.Actions = window.Actions || {};
 
 let currentPage = 'dashboard';
+let currentProjectId = null; // المشروع المفتوح حالياً في صفحة التفاصيل الكاملة
 let currentTxType = 'payment';
 let selectedProjectColor = PROJECT_COLORS[0];
 let quickExpenseCategory = EXPENSE_CATEGORIES[0];
@@ -4364,7 +4378,8 @@ const PAGE_RENDERERS = {
   activity:    renderActivity,
   settings:    renderSettings,
   profile:     renderProfile,
-  users:       renderUsers
+  users:       renderUsers,
+  'project-detail': renderProjectDetailPage
 };
 
 const PAGE_TITLES = {
@@ -4424,6 +4439,27 @@ function goToPage(page){
   if (main) main.scrollTop = 0;
   window.scrollTo(0, 0);
 }
+
+/* فتح صفحة تفاصيل مشروع كصفحة كاملة مستقلة (بدل نافذة منبثقة) */
+function goToProjectDetail(pid){
+  currentPage = 'project-detail';
+  currentProjectId = pid;
+
+  $('.nav-btn').forEach(b => b.setAttribute('aria-current', 'false'));
+  $('.page').forEach(p => p.classList.toggle('active', p.id === 'page-project-detail'));
+
+  closeSidebar();
+  renderUI();
+
+  const main = byId('mainContent');
+  if (main) main.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+Actions['back-to-dashboard'] = function(){
+  currentProjectId = null;
+  goToPage('dashboard');
+};
 
 /* ---------- الحفظ + إعادة الرسم ---------- */
 function saveAndRender(message){
@@ -4616,14 +4652,31 @@ Actions['project-delete'] = async function(el){
   db.projects = db.projects.filter(x => x.id !== p.id);
   db.transactions = db.transactions.filter(x => x.projectId !== p.id);
   Data.logActivity('delete', 'حذف مشروع: ' + p.name + ' (' + count + ' حركة)');
+  currentProjectId = null;
+  if (currentPage === 'project-detail') currentPage = 'dashboard';
+  goToPage('dashboard');
   saveAndRender('تم حذف المشروع');
 };
 
-/* ---------- تفاصيل المشروع ---------- */
+/* ---------- تفاصيل المشروع (فتح كصفحة كاملة) ---------- */
 Actions['project-open'] = function(el){
   const pid = el.dataset.id;
   const p = projectById(pid);
   if (!p) { Toast.err('المشروع مش موجود — يمكن يكون اتحذف من جهاز تاني.'); renderUI(); return; }
+  Modal.close(); // نقفل أي نافذة منبثقة فرعية مفتوحة (دفعات، بيانات فنية، ...) قبل الرجوع لصفحة المشروع
+  goToProjectDetail(pid);
+};
+
+/* رسم صفحة تفاصيل المشروع الكاملة — بتُستدعى عند الفتح وأيضاً تلقائياً
+   بعد أي تعديل (إضافة حركة، دفعة تصنيع، ...) عن طريق renderUI() */
+function renderProjectDetailPage(){
+  const pid = currentProjectId;
+  const p = projectById(pid);
+  if (!p) {
+    Toast.err('المشروع مش موجود — يمكن يكون اتحذف من جهاز تاني.');
+    goToPage('dashboard');
+    return;
+  }
 
   const s = projectStats(pid);
   const additions = p.additions || [];
@@ -4681,8 +4734,12 @@ Actions['project-open'] = function(el){
         '</div>').join('')
     : emptyState('💰', 'لا توجد حركات على المشروع', '');
 
-  Modal.open(
-    '<span class="dot" style="background:' + esc(projectColor(p)) + '"></span>' + esc(p.name),
+  setText('topbarTitle', p.name);
+  document.title = p.name + ' — ' + COMPANY_DEFAULTS.name;
+  byId('projectDetailTitle').innerHTML =
+    '<span class="dot" style="background:' + esc(projectColor(p)) + '"></span>' + esc(p.name);
+
+  byId('projectDetailBody').innerHTML =
     '<div class="stat-grid">' +
       miniStat('القيمة المتفق عليها', dfmt(projectValue(p)), 'violet') +
       miniStat('المقبوض',  dfmt(s.inSum),     'green') +
@@ -4718,9 +4775,8 @@ Actions['project-open'] = function(el){
       '<button type="button" class="btn btn-ghost btn-sm" data-act="tx-new" data-pid="' + escAttr(pid) + '">+ حركة</button>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-act="project-print" data-id="' + escAttr(pid) + '">📄 PDF</button>' +
       '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
-    '</div></div>' + txHtml + '</div>',
-    { wide:true });
-};
+    '</div></div>' + txHtml + '</div>';
+}
 
 /* ============================================================
    البيانات الفنية للمشروع — عناوين PLC و SCADA والمعلومات العامة
