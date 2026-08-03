@@ -2613,6 +2613,8 @@ const Data = (function(){
       p.value       = asNumber(p.value, 0);
       p.additions   = asArray(p.additions);
       p.manufacturing = asArray(p.manufacturing);
+      p.tasks       = asArray(p.tasks);
+      p.tasks.forEach(t => { t.done = !!t.done; });
       p.additions.forEach(a => { a.amount = asNumber(a.amount, 0); });
       p.manufacturing.forEach(m => {
         m.agreedAmount = asNumber(m.agreedAmount, 0);
@@ -3930,6 +3932,7 @@ function projectCardHtml(p){
   const s = projectStats(p.id);
   const value = projectValue(p);
   const ratio = value ? Math.min(100, (s.inSum / value) * 100) : 0;
+  const ts = taskStats(p);
   return '<div class="list-item is-clickable has-accent" style="border-inline-start-color:' + esc(projectColor(p)) +
          ';flex-direction:column;align-items:stretch" data-act="project-open" data-id="' + escAttr(p.id) +
          '" role="button" tabindex="0">' +
@@ -3941,7 +3944,8 @@ function projectCardHtml(p){
       '<span class="amount ' + (s.remaining > 0 ? '' : 'in') + '">' + esc(dmoney(s.remaining)) + '</span>' +
     '</div>' +
     '<div class="progress" style="width:100%"><span style="width:' + ratio.toFixed(1) + '%"></span></div>' +
-    '<div class="li-meta">مقبوض ' + esc(dmoney(s.inSum)) + ' · ربح ' + esc(dmoney(s.profit)) + '</div>' +
+    '<div class="li-meta">مقبوض ' + esc(dmoney(s.inSum)) + ' · ربح ' + esc(dmoney(s.profit)) +
+      (ts.total ? ' · مراحل الشغل: تم ' + ts.done + ' من ' + ts.total : '') + '</div>' +
   '</div>';
 }
 
@@ -3965,6 +3969,7 @@ function renderProjects(){
     const s = projectStats(p.id);
     const value = projectValue(p);
     const ratio = value ? Math.min(100, (s.inSum / value) * 100) : 0;
+    const ts = taskStats(p);
     return '<div class="panel" style="border-inline-start:4px solid ' + esc(projectColor(p)) + '">' +
       '<div class="panel-head">' +
         '<div class="li-main">' +
@@ -3985,7 +3990,9 @@ function renderProjects(){
         miniStat('المتبقي',  dfmt(s.remaining), 'blue')   +
       '</div>' +
       '<div class="progress"><span style="width:' + ratio.toFixed(1) + '%"></span></div>' +
-      '<div class="muted" style="margin-top:8px">تم تحصيل ' + ratio.toFixed(0) + '% من قيمة المشروع</div>' +
+      '<div class="muted" style="margin-top:8px">تم تحصيل ' + ratio.toFixed(0) + '% من قيمة المشروع' +
+        (ts.total ? ' · مراحل الشغل: تم ' + ts.done + ' من ' + ts.total + ' (' + ts.ratio.toFixed(0) + '%)' : '') +
+      '</div>' +
     '</div>';
   }).join('');
 }
@@ -4779,6 +4786,8 @@ function renderProjectDetailPage(){
       '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
     '</div></div>' + txHtml + '</div>' +
 
+    tasksPanelHtml(p) +
+
     '<div class="panel"><div class="panel-head"><h3>زيادات الشغل</h3>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-act="addition-new" data-pid="' + escAttr(pid) + '">+ زيادة شغل</button>' +
     '</div>' + additionsHtml + '</div>' +
@@ -4788,6 +4797,58 @@ function renderProjectDetailPage(){
     '</div>' + mfgHtml + '</div>' +
 
     techPanelHtml(p);
+}
+
+/* ============================================================
+   مراحل الشغل — ما تم عمله وما تبقى في كل مشروع
+   محفوظة جوه المشروع: p.tasks = [{id, title, done, date, created}]
+   ============================================================ */
+function taskStats(p){
+  const tasks = p.tasks || [];
+  const done  = tasks.filter(t => t.done).length;
+  const total = tasks.length;
+  return { tasks, done, total, remaining: total - done,
+           ratio: total ? (done / total * 100) : 0 };
+}
+
+function taskListHtml(p){
+  const tasks = (p.tasks || []).slice().sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;   // اللي متبقي فوق، اللي تم تحت
+    return (a.created || 0) - (b.created || 0);
+  });
+  if (!tasks.length) {
+    return emptyState('🧩', 'لا توجد مراحل مسجلة', 'اضغط "+ مرحلة" وسجّل أول خطوة في الشغل.');
+  }
+  return tasks.map(t =>
+    '<div class="list-item">' +
+      '<div class="li-main">' +
+        '<div class="li-title"' + (t.done ? ' style="text-decoration:line-through;color:var(--text-3)"' : '') + '>' +
+          esc(t.title || 'مرحلة بدون اسم') + '</div>' +
+        (t.date ? '<div class="li-meta">' + esc(t.date) + '</div>' : '') +
+      '</div>' +
+      '<div class="li-side">' +
+        '<span class="badge">' + (t.done ? '✔ تم' : '⏳ متبقي') + '</span>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act="task-toggle" ' +
+          'data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(t.id) + '">' +
+          (t.done ? 'إرجاع لمتبقي' : 'تحديد كمنجز') + '</button>' +
+        '<button type="button" class="btn btn-danger btn-sm" data-act="task-del" ' +
+          'data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(t.id) + '">حذف</button>' +
+      '</div>' +
+    '</div>').join('');
+}
+
+function tasksPanelHtml(p){
+  const s = taskStats(p);
+  return '<div class="panel"><div class="panel-head"><h3>مراحل الشغل — ما تم وما تبقى</h3>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="task-new" data-pid="' + escAttr(p.id) + '">+ مرحلة</button>' +
+    '</div>' +
+    (s.total
+      ? '<div class="progress" style="width:100%"><span style="width:' + s.ratio.toFixed(1) + '%"></span></div>' +
+        '<div class="muted" style="margin:8px 0 12px">تم إنجاز ' + s.done + ' من ' + s.total +
+        ' (' + s.ratio.toFixed(0) + '%) · متبقي ' + s.remaining + '</div>'
+      : '') +
+    taskListHtml(p) +
+  '</div>';
 }
 
 /* ============================================================
@@ -5211,6 +5272,72 @@ Actions['addition-del'] = async function(el){
   if (!ok) return;
   p.additions = (p.additions || []).filter(a => a.id !== id);
   Data.logActivity('delete', 'حذف زيادة شغل من ' + p.name);
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:pid } });
+};
+
+/* ---------- مراحل الشغل: ما تم وما تبقى ---------- */
+Actions['task-new'] = function(el){
+  const pid = el.dataset.pid;
+  Modal.open('إضافة مرحلة شغل',
+    '<div class="form-grid">' +
+      '<div class="field span-2"><label for="fTaskTitle">وصف المرحلة</label>' +
+        '<input id="fTaskTitle" placeholder="مثال: تركيب اللوحة الرئيسية"></div>' +
+      '<div class="field"><label for="fTaskDate">التاريخ (اختياري)</label>' +
+        '<input id="fTaskDate" type="date" value="' + today() + '"></div>' +
+    '</div>' +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="task-save" data-pid="' + escAttr(pid) + '">إضافة</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(pid) + '">رجوع</button>' +
+    '</div>');
+};
+
+Actions['task-save'] = function(el){
+  const pid = el.dataset.pid;
+  const title = byId('fTaskTitle').value.trim();
+  if (!title) { Toast.warn('اكتب وصف المرحلة.'); byId('fTaskTitle').focus(); return; }
+  const p = projectById(pid);
+  if (!p) return;
+  if (!Array.isArray(p.tasks)) p.tasks = [];
+  p.tasks.push({
+    id: uid(),
+    title,
+    date: byId('fTaskDate').value,
+    done: false,
+    created: Date.now()
+  });
+  Data.logActivity('create', 'إضافة مرحلة شغل على ' + p.name + ': ' + title);
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:pid } });
+  Toast.ok('تمت إضافة المرحلة');
+};
+
+Actions['task-toggle'] = function(el){
+  const { pid, id } = el.dataset;
+  const p = projectById(pid);
+  if (!p) return;
+  const t = (p.tasks || []).find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:pid } });
+};
+
+Actions['task-del'] = async function(el){
+  const { pid, id } = el.dataset;
+  const p = projectById(pid);
+  if (!p) return;
+  const ok = await confirmAction({
+    title:'حذف مرحلة الشغل',
+    message:'هيتحذف تسجيل المرحلة دي نهائياً.',
+    confirmLabel:'حذف'
+  });
+  if (!ok) return;
+  p.tasks = (p.tasks || []).filter(t => t.id !== id);
+  Data.logActivity('delete', 'حذف مرحلة شغل من ' + p.name);
   renderUI();
   Data.save().catch(handleSaveError);
   Actions['project-open']({ dataset:{ id:pid } });
@@ -5965,6 +6092,17 @@ Actions['project-print'] = function(el){
       '</tbody></table>'
     : '';
 
+  const tasks = p.tasks || [];
+  const ts = taskStats(p);
+  const tasksHtml = tasks.length
+    ? '<h3 style="margin-top:22px">مراحل الشغل — ما تم وما تبقى (' + ts.done + ' من ' + ts.total + ')</h3>' +
+      '<table><thead><tr><th>المرحلة</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
+      tasks.slice().sort((a, b) => (a.done === b.done) ? (a.created || 0) - (b.created || 0) : (a.done ? 1 : -1))
+        .map(t => '<tr><td>' + esc(t.title || '-') + '</td><td>' + esc(t.date || '-') +
+          '</td><td>' + (t.done ? 'تم ✔' : 'متبقي ⏳') + '</td></tr>').join('') +
+      '</tbody></table>'
+    : '';
+
   const mfg = p.manufacturing || [];
   const mfgHtml = mfg.length
     ? '<h3 style="margin-top:22px">التصنيع والتركيب</h3><table><thead><tr>' +
@@ -5999,7 +6137,7 @@ Actions['project-print'] = function(el){
         '<div><strong>المتبقي:</strong> ' + esc(money(s.remaining)) + '</div>' +
         '<div><strong>التكاليف:</strong> ' + esc(money(s.costs)) + '</div>' +
       '</div>' +
-      additionsHtml + mfgHtml +
+      tasksHtml + additionsHtml + mfgHtml +
       '<h3 style="margin-top:22px">حركات المشروع</h3>' +
       '<table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
