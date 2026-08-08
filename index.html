@@ -360,15 +360,6 @@ a:hover{text-decoration:underline}
 .btn-danger{background:transparent;color:var(--red);border-color:var(--red-tint)}
 .btn-danger:hover:not(:disabled){background:var(--red-tint);border-color:var(--red)}
 
-.btn-tone-blue{background:transparent;color:var(--blue);border-color:var(--blue-tint)}
-.btn-tone-blue:hover:not(:disabled){background:var(--blue-tint);border-color:var(--blue)}
-.btn-tone-violet{background:transparent;color:var(--violet);border-color:var(--violet-tint)}
-.btn-tone-violet:hover:not(:disabled){background:var(--violet-tint);border-color:var(--violet)}
-.btn-tone-yellow{background:transparent;color:var(--yellow);border-color:var(--yellow-tint)}
-.btn-tone-yellow:hover:not(:disabled){background:var(--yellow-tint);border-color:var(--yellow)}
-.btn-tone-green{background:transparent;color:var(--green);border-color:var(--green-tint)}
-.btn-tone-green:hover:not(:disabled){background:var(--green-tint);border-color:var(--green)}
-
 .btn-icon{padding:9px;width:38px;height:38px;flex-shrink:0}
 .btn-sm{padding:6px var(--sp-3);font-size:12.5px;border-radius:var(--r-sm)}
 .btn-block{width:100%}
@@ -1205,12 +1196,6 @@ select{
           </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-head"><h3>نسبة استكمال المشاريع</h3>
-            <span class="muted">حسب مراحل الشغل المسجلة</span></div>
-          <div id="projectsCompletionChart"></div>
-        </div>
-
         <div class="grid-2">
           <div class="panel">
             <div class="panel-head"><h3>المشاريع النشطة</h3>
@@ -1246,19 +1231,6 @@ select{
           </span>
         </div>
         <div id="projectsPageList"></div>
-      </section>
-
-      <!-- ===== تفاصيل المشروع (صفحة كاملة) ===== -->
-      <section class="page" id="page-project-detail" aria-labelledby="projectDetailTitle">
-        <div class="page-head">
-          <div>
-            <button type="button" class="btn btn-ghost btn-sm" data-act="back-to-dashboard" style="margin-bottom:10px">
-              <span aria-hidden="true">→</span> رجوع للوحة التحكم
-            </button>
-            <h2 id="projectDetailTitle">مشروع</h2>
-          </div>
-        </div>
-        <div id="projectDetailBody"></div>
       </section>
 
       <!-- ===== العملاء ===== -->
@@ -2147,39 +2119,36 @@ function printStyles(accent){
   return `
     @page{margin:16mm}
     *{box-sizing:border-box}
-    html,body{width:100%;max-width:100%;overflow-x:hidden}
     body{font-family:'Tajawal',Arial,sans-serif;direction:rtl;color:#111;background:#fff;padding:0;margin:0;line-height:1.6}
-    .doc{width:100%;max-width:820px;margin:0 auto}
-    .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+    .doc{max-width:820px;margin:0 auto}
+    .header{display:flex;justify-content:space-between;align-items:center;
             border-bottom:3px solid ${c};padding-bottom:14px;margin-bottom:20px;gap:16px}
-    .company-logo{width:86px;height:86px;max-width:86px;object-fit:contain;border-radius:10px;flex-shrink:0}
-    .brand-text{font-size:26px;font-weight:900;letter-spacing:1px;color:#333;overflow-wrap:break-word}
+    .company-logo{width:86px;height:86px;object-fit:contain;border-radius:10px}
+    .brand-text{font-size:26px;font-weight:900;letter-spacing:1px;color:#333}
     .brand-text .brand-run{color:#2f7fd6;margin-inline-start:4px}
-    h1,h2,h3{margin:0 0 6px;overflow-wrap:break-word;word-break:break-word}
+    h1,h2,h3{margin:0 0 6px}
     h2{color:${c};font-size:22px}
-    .title-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px;flex-wrap:wrap;max-width:100%}
+    .title-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px;flex-wrap:wrap}
     .doc-number{background:#fdf3e8;color:#a66a2e;border:1px solid #edd3ae;border-radius:8px;
-                padding:5px 12px;font-weight:800;font-size:13px;display:inline-block;overflow-wrap:break-word}
-    .meta{color:#555;font-size:13px;margin-bottom:14px;overflow-wrap:break-word;word-break:break-word}
-    table{width:100%;max-width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;table-layout:fixed}
-    th,td{padding:9px 10px;border:1px solid #d5d5d5;text-align:right;overflow-wrap:break-word;word-break:break-word;white-space:normal}
+                padding:5px 12px;font-weight:800;font-size:13px;display:inline-block}
+    .meta{color:#555;font-size:13px;margin-bottom:14px}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+    th,td{padding:9px 10px;border:1px solid #d5d5d5;text-align:right}
     th{background:#f6f6f6;font-weight:700}
     tbody tr:nth-child(even){background:#fbfbfb}
-    .amount{text-align:left;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:break-word}
-    .totals{margin-top:18px;width:320px;max-width:100%;margin-inline-start:auto}
-    .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;gap:10px}
-    .totals div span:last-child{overflow-wrap:break-word;word-break:break-word;text-align:left}
+    .amount{text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .totals{margin-top:18px;width:320px;margin-inline-start:auto}
+    .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee}
     .totals .grand{font-weight:900;font-size:17px;border-bottom:none;
                    border-top:2px solid ${c};padding-top:10px;margin-top:6px;color:${c}}
-    .summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;max-width:100%}
-    .summary div{padding:11px 13px;border:1px solid #ddd;border-radius:9px;background:#fafafa;font-size:13px;overflow-wrap:break-word}
+    .summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    .summary div{padding:11px 13px;border:1px solid #ddd;border-radius:9px;background:#fafafa;font-size:13px}
     .small{color:#555;font-size:12px}
     .empty{text-align:center;color:#888;padding:18px}
     .foot{margin-top:44px;padding-top:14px;border-top:2px solid ${c};
-          display:flex;justify-content:center;gap:34px;flex-wrap:wrap;max-width:100%;
+          display:flex;justify-content:center;gap:34px;flex-wrap:wrap;
           page-break-inside:avoid;break-inside:avoid}
-    .foot .item{display:flex;align-items:center;gap:7px;font-size:13px;color:#333;font-weight:700;overflow-wrap:break-word}
-    img{max-width:100%}
+    .foot .item{display:flex;align-items:center;gap:7px;font-size:13px;color:#333;font-weight:700}
     @media print{ body{padding:0} tbody tr{page-break-inside:avoid} }
   `;
 }
@@ -2619,8 +2588,6 @@ const Data = (function(){
       p.value       = asNumber(p.value, 0);
       p.additions   = asArray(p.additions);
       p.manufacturing = asArray(p.manufacturing);
-      p.tasks       = asArray(p.tasks);
-      p.tasks.forEach(t => { t.done = !!t.done; });
       p.additions.forEach(a => { a.amount = asNumber(a.amount, 0); });
       p.manufacturing.forEach(m => {
         m.agreedAmount = asNumber(m.agreedAmount, 0);
@@ -2632,9 +2599,29 @@ const Data = (function(){
          وجودها هنا بدل ما الواجهة تقع على undefined. */
       p.tech = (p.tech && typeof p.tech === 'object') ? p.tech : {};
       p.tech.extra = asArray(p.tech.extra);
-      // طريقة تسجيل العناوين: جدول منظم ولا كتابة حرة
+      // طريقة تسجيل العناوين: جدول منظم ولا نوتات مكتوبة
       if (p.tech.mode !== 'text') p.tech.mode = 'table';
-      p.tech.freeText = typeof p.tech.freeText === 'string' ? p.tech.freeText : '';
+      p.tech.noteList = asArray(p.tech.noteList);
+      p.tech.noteList.forEach(n => {
+        n.title   = String(n.title == null ? '' : n.title);
+        n.body    = String(n.body  == null ? '' : n.body);
+        n.created = asNumber(n.created, 0);
+        n.updated = asNumber(n.updated, n.created);
+      });
+
+      /* ترحيل: النسخة الأولى كانت نص واحد (freeText). لو لقيناه فيه
+         كلام بنحوّله لنوتة ونفضّيه — فمحدش بيخسر اللي كتبه. العملية
+         دي بتتنفذ مرة واحدة لأن freeText بيبقى فاضي بعدها. */
+      if (typeof p.tech.freeText === 'string' && p.tech.freeText.trim()) {
+        p.tech.noteList.unshift({
+          id: 'mig_' + Math.random().toString(36).slice(2, 9),
+          title: 'ملاحظات',
+          body: p.tech.freeText,
+          created: Date.now(),
+          updated: Date.now()
+        });
+      }
+      p.tech.freeText = '';
       p.ioTags = asArray(p.ioTags);
       p.ioTags.forEach(t => {
         if (!IO_TYPES[t.type]) t.type = 'OTH';
@@ -3640,7 +3627,6 @@ Actions['pg-view'] = function(el){
 window.Actions = window.Actions || {};
 
 let currentPage = 'dashboard';
-let currentProjectId = null; // المشروع المفتوح حالياً في صفحة التفاصيل الكاملة
 let currentTxType = 'payment';
 let selectedProjectColor = PROJECT_COLORS[0];
 let quickExpenseCategory = EXPENSE_CATEGORIES[0];
@@ -3862,25 +3848,6 @@ function hbarsHtml(items){
   ).join('');
 }
 
-/* أشرطة أفقية — نسبة استكمال المشاريع (مراحل الشغل) */
-function completionBarsHtml(items){
-  if (!items.length) {
-    return emptyState('🧩', 'لا توجد مراحل مسجلة', 'ضيف مراحل شغل لمشاريعك عشان تشوف نسبة الاستكمال هنا.');
-  }
-  return items.map(i =>
-    '<div class="hbar">' +
-      '<div class="hbar-top">' +
-        '<span class="hb-name">' + esc(i.label) + '</span>' +
-        '<span class="hb-val">' + i.value.toFixed(0) + '% <span class="muted">(' + i.done + '/' + i.total + ')</span></span>' +
-      '</div>' +
-      '<div class="hbar-track">' +
-        '<div class="hbar-fill" style="width:' + i.value.toFixed(1) +
-        '%;background:' + i.color + '"></div>' +
-      '</div>' +
-    '</div>'
-  ).join('');
-}
-
 /* ============================================================
    3. الصفحات
    ============================================================ */
@@ -3915,13 +3882,6 @@ function renderDashboard(){
   setHtml('costsDonut', segments.length
     ? donutSvg(segments, dfmt(t.outgoing), 'إجمالي التكاليف')
     : emptyState('🍩', 'لا توجد تكاليف مسجلة', 'ضيف حركات مصروفات عشان تشوف التوزيع.'));
-
-  // نسبة استكمال المشاريع (حسب مراحل الشغل)
-  const completion = db.projects
-    .map(p => { const ts = taskStats(p); return { label: p.name, value: ts.ratio, done: ts.done, total: ts.total, color: projectColor(p) }; })
-    .filter(i => i.total > 0)
-    .sort((a, b) => a.value - b.value);
-  setHtml('projectsCompletionChart', completionBarsHtml(completion));
 
   // أعلى المشاريع ربحاً
   const topProjects = db.projects
@@ -3964,7 +3924,6 @@ function projectCardHtml(p){
   const s = projectStats(p.id);
   const value = projectValue(p);
   const ratio = value ? Math.min(100, (s.inSum / value) * 100) : 0;
-  const ts = taskStats(p);
   return '<div class="list-item is-clickable has-accent" style="border-inline-start-color:' + esc(projectColor(p)) +
          ';flex-direction:column;align-items:stretch" data-act="project-open" data-id="' + escAttr(p.id) +
          '" role="button" tabindex="0">' +
@@ -3976,8 +3935,7 @@ function projectCardHtml(p){
       '<span class="amount ' + (s.remaining > 0 ? '' : 'in') + '">' + esc(dmoney(s.remaining)) + '</span>' +
     '</div>' +
     '<div class="progress" style="width:100%"><span style="width:' + ratio.toFixed(1) + '%"></span></div>' +
-    '<div class="li-meta">مقبوض ' + esc(dmoney(s.inSum)) + ' · ربح ' + esc(dmoney(s.profit)) +
-      (ts.total ? ' · مراحل الشغل: تم ' + ts.done + ' من ' + ts.total : '') + '</div>' +
+    '<div class="li-meta">مقبوض ' + esc(dmoney(s.inSum)) + ' · ربح ' + esc(dmoney(s.profit)) + '</div>' +
   '</div>';
 }
 
@@ -4001,7 +3959,6 @@ function renderProjects(){
     const s = projectStats(p.id);
     const value = projectValue(p);
     const ratio = value ? Math.min(100, (s.inSum / value) * 100) : 0;
-    const ts = taskStats(p);
     return '<div class="panel" style="border-inline-start:4px solid ' + esc(projectColor(p)) + '">' +
       '<div class="panel-head">' +
         '<div class="li-main">' +
@@ -4022,9 +3979,7 @@ function renderProjects(){
         miniStat('المتبقي',  dfmt(s.remaining), 'blue')   +
       '</div>' +
       '<div class="progress"><span style="width:' + ratio.toFixed(1) + '%"></span></div>' +
-      '<div class="muted" style="margin-top:8px">تم تحصيل ' + ratio.toFixed(0) + '% من قيمة المشروع' +
-        (ts.total ? ' · مراحل الشغل: تم ' + ts.done + ' من ' + ts.total + ' (' + ts.ratio.toFixed(0) + '%)' : '') +
-      '</div>' +
+      '<div class="muted" style="margin-top:8px">تم تحصيل ' + ratio.toFixed(0) + '% من قيمة المشروع</div>' +
     '</div>';
   }).join('');
 }
@@ -4429,8 +4384,7 @@ const PAGE_RENDERERS = {
   activity:    renderActivity,
   settings:    renderSettings,
   profile:     renderProfile,
-  users:       renderUsers,
-  'project-detail': renderProjectDetailPage
+  users:       renderUsers
 };
 
 const PAGE_TITLES = {
@@ -4490,27 +4444,6 @@ function goToPage(page){
   if (main) main.scrollTop = 0;
   window.scrollTo(0, 0);
 }
-
-/* فتح صفحة تفاصيل مشروع كصفحة كاملة مستقلة (بدل نافذة منبثقة) */
-function goToProjectDetail(pid){
-  currentPage = 'project-detail';
-  currentProjectId = pid;
-
-  $('.nav-btn').forEach(b => b.setAttribute('aria-current', 'false'));
-  $('.page').forEach(p => p.classList.toggle('active', p.id === 'page-project-detail'));
-
-  closeSidebar();
-  renderUI();
-
-  const main = byId('mainContent');
-  if (main) main.scrollTop = 0;
-  window.scrollTo(0, 0);
-}
-
-Actions['back-to-dashboard'] = function(){
-  currentProjectId = null;
-  goToPage('dashboard');
-};
 
 /* ---------- الحفظ + إعادة الرسم ---------- */
 function saveAndRender(message){
@@ -4703,31 +4636,14 @@ Actions['project-delete'] = async function(el){
   db.projects = db.projects.filter(x => x.id !== p.id);
   db.transactions = db.transactions.filter(x => x.projectId !== p.id);
   Data.logActivity('delete', 'حذف مشروع: ' + p.name + ' (' + count + ' حركة)');
-  currentProjectId = null;
-  if (currentPage === 'project-detail') currentPage = 'dashboard';
-  goToPage('dashboard');
   saveAndRender('تم حذف المشروع');
 };
 
-/* ---------- تفاصيل المشروع (فتح كصفحة كاملة) ---------- */
+/* ---------- تفاصيل المشروع ---------- */
 Actions['project-open'] = function(el){
   const pid = el.dataset.id;
   const p = projectById(pid);
   if (!p) { Toast.err('المشروع مش موجود — يمكن يكون اتحذف من جهاز تاني.'); renderUI(); return; }
-  Modal.close(); // نقفل أي نافذة منبثقة فرعية مفتوحة (دفعات، بيانات فنية، ...) قبل الرجوع لصفحة المشروع
-  goToProjectDetail(pid);
-};
-
-/* رسم صفحة تفاصيل المشروع الكاملة — بتُستدعى عند الفتح وأيضاً تلقائياً
-   بعد أي تعديل (إضافة حركة، دفعة تصنيع، ...) عن طريق renderUI() */
-function renderProjectDetailPage(){
-  const pid = currentProjectId;
-  const p = projectById(pid);
-  if (!p) {
-    Toast.err('المشروع مش موجود — يمكن يكون اتحذف من جهاز تاني.');
-    goToPage('dashboard');
-    return;
-  }
 
   const s = projectStats(pid);
   const additions = p.additions || [];
@@ -4785,12 +4701,8 @@ function renderProjectDetailPage(){
         '</div>').join('')
     : emptyState('💰', 'لا توجد حركات على المشروع', '');
 
-  setText('topbarTitle', p.name);
-  document.title = p.name + ' — ' + COMPANY_DEFAULTS.name;
-  byId('projectDetailTitle').innerHTML =
-    '<span class="dot" style="background:' + esc(projectColor(p)) + '"></span>' + esc(p.name);
-
-  byId('projectDetailBody').innerHTML =
+  Modal.open(
+    '<span class="dot" style="background:' + esc(projectColor(p)) + '"></span>' + esc(p.name),
     '<div class="stat-grid">' +
       miniStat('القيمة المتفق عليها', dfmt(projectValue(p)), 'violet') +
       miniStat('المقبوض',  dfmt(s.inSum),     'green') +
@@ -4810,16 +4722,6 @@ function renderProjectDetailPage(){
         ' (المتفق عليه مع الورشة لا يُخصم إلا لما يتدفع)</div>'
       : '') +
 
-    '<div class="panel"><div class="panel-head"><h3>حركات المشروع</h3><div class="panel-actions">' +
-      '<button type="button" class="btn btn-tone-blue btn-sm" data-act="tx-new" data-pid="' + escAttr(pid) + '">+ حركة</button>' +
-      '<button type="button" class="btn btn-tone-violet btn-sm" data-act="project-edit" data-id="' + escAttr(pid) + '">✎ تعديل</button>' +
-      '<button type="button" class="btn btn-tone-yellow btn-sm" data-act="expense-new" data-pid="' + escAttr(pid) + '">+ مصروف</button>' +
-      '<button type="button" class="btn btn-tone-green btn-sm" data-act="project-print" data-id="' + escAttr(pid) + '">📄 PDF</button>' +
-      '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
-    '</div></div>' + txHtml + '</div>' +
-
-    tasksPanelHtml(p) +
-
     '<div class="panel"><div class="panel-head"><h3>زيادات الشغل</h3>' +
       '<button type="button" class="btn btn-ghost btn-sm" data-act="addition-new" data-pid="' + escAttr(pid) + '">+ زيادة شغل</button>' +
     '</div>' + additionsHtml + '</div>' +
@@ -4828,60 +4730,17 @@ function renderProjectDetailPage(){
       '<button type="button" class="btn btn-ghost btn-sm" data-act="mfg-new" data-pid="' + escAttr(pid) + '">+ تصنيع/تركيب</button>' +
     '</div>' + mfgHtml + '</div>' +
 
-    techPanelHtml(p);
-}
+    techPanelHtml(p) +
 
-/* ============================================================
-   مراحل الشغل — ما تم عمله وما تبقى في كل مشروع
-   محفوظة جوه المشروع: p.tasks = [{id, title, done, date, created}]
-   ============================================================ */
-function taskStats(p){
-  const tasks = p.tasks || [];
-  const done  = tasks.filter(t => t.done).length;
-  const total = tasks.length;
-  return { tasks, done, total, remaining: total - done,
-           ratio: total ? (done / total * 100) : 0 };
-}
-
-function taskListHtml(p){
-  const tasks = (p.tasks || []).slice().sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1;   // اللي متبقي فوق، اللي تم تحت
-    return (a.created || 0) - (b.created || 0);
-  });
-  if (!tasks.length) {
-    return emptyState('🧩', 'لا توجد مراحل مسجلة', 'اضغط "+ مرحلة" وسجّل أول خطوة في الشغل.');
-  }
-  return tasks.map(t =>
-    '<div class="list-item">' +
-      '<div class="li-main">' +
-        '<div class="li-title"' + (t.done ? ' style="text-decoration:line-through;color:var(--text-3)"' : '') + '>' +
-          esc(t.title || 'مرحلة بدون اسم') + '</div>' +
-        (t.date ? '<div class="li-meta">' + esc(t.date) + '</div>' : '') +
-      '</div>' +
-      '<div class="li-side">' +
-        '<span class="badge">' + (t.done ? '✔ تم' : '⏳ متبقي') + '</span>' +
-        '<button type="button" class="btn btn-ghost btn-sm" data-act="task-toggle" ' +
-          'data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(t.id) + '">' +
-          (t.done ? 'إرجاع لمتبقي' : 'تحديد كمنجز') + '</button>' +
-        '<button type="button" class="btn btn-danger btn-sm" data-act="task-del" ' +
-          'data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(t.id) + '">حذف</button>' +
-      '</div>' +
-    '</div>').join('');
-}
-
-function tasksPanelHtml(p){
-  const s = taskStats(p);
-  return '<div class="panel"><div class="panel-head"><h3>مراحل الشغل — ما تم وما تبقى</h3>' +
-      '<button type="button" class="btn btn-ghost btn-sm" data-act="task-new" data-pid="' + escAttr(p.id) + '">+ مرحلة</button>' +
-    '</div>' +
-    (s.total
-      ? '<div class="progress" style="width:100%"><span style="width:' + s.ratio.toFixed(1) + '%"></span></div>' +
-        '<div class="muted" style="margin:8px 0 12px">تم إنجاز ' + s.done + ' من ' + s.total +
-        ' (' + s.ratio.toFixed(0) + '%) · متبقي ' + s.remaining + '</div>'
-      : '') +
-    taskListHtml(p) +
-  '</div>';
-}
+    '<div class="panel"><div class="panel-head"><h3>حركات المشروع</h3><div class="panel-actions">' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="project-edit" data-id="' + escAttr(pid) + '">✎ تعديل</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="expense-new" data-pid="' + escAttr(pid) + '">+ مصروف</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="tx-new" data-pid="' + escAttr(pid) + '">+ حركة</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="project-print" data-id="' + escAttr(pid) + '">📄 PDF</button>' +
+      '<button type="button" class="btn btn-danger btn-sm" data-act="project-delete" data-id="' + escAttr(pid) + '">حذف المشروع</button>' +
+    '</div></div>' + txHtml + '</div>',
+    { wide:true });
+};
 
 /* ============================================================
    البيانات الفنية للمشروع — عناوين PLC و SCADA والمعلومات العامة
@@ -4970,20 +4829,38 @@ function techPanelHtml(p){
         'placeholder="بحث بالبيان أو العنوان..." aria-label="بحث في العناوين"></span></div>'
     : '';
 
-  /* ---- الكتابة الحرة ---- */
-  const freeHtml = (tech.freeText || '').trim()
-    ? '<div class="li-meta" dir="auto" style="white-space:pre-wrap;font-family:monospace;' +
-        'font-size:13px;line-height:1.9">' + esc(tech.freeText) + '</div>'
-    : emptyState('✍️', 'الصفحة فاضية', 'اضغط "تعديل" واكتب العناوين زي ما تحب.');
+  /* ---- النوتات ---- */
+  const notes = tech.noteList || [];
+  const notesHtml = notes.length
+    ? notes.slice()
+        .sort((a, b) => (b.updated || 0) - (a.updated || 0))
+        .map(n => {
+          const preview = (n.body || '').trim().split('\n').slice(0, 2).join(' · ');
+          return '<div class="list-item is-clickable" data-act="note-open" ' +
+              'data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">' +
+            '<div class="li-main">' +
+              '<div class="li-title">📝 ' + esc(n.title || 'نوتة من غير عنوان') + '</div>' +
+              '<div class="li-meta" dir="auto">' +
+                (preview ? esc(preview.slice(0, 90)) + (preview.length > 90 ? '…' : '') : 'فاضية') +
+                (n.updated ? ' · ' + esc(relativeTime(n.updated)) : '') +
+              '</div>' +
+            '</div>' +
+            '<div class="li-side">' +
+              '<button type="button" class="btn btn-ghost btn-sm" data-act="note-open" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">فتح</button>' +
+              '<button type="button" class="btn btn-danger btn-sm" data-act="note-del" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">حذف</button>' +
+            '</div>' +
+          '</div>';
+        }).join('')
+    : emptyState('📝', 'لا توجد نوتات', 'اضغط "+ نوتة" وابدأ اكتب.');
 
-  /* ---- مفتاح الوضع: جدول ولا كتابة حرة ---- */
+  /* ---- مفتاح الوضع: جدول ولا نوتات ---- */
   const isText = tech.mode === 'text';
   const modeSeg =
     '<div class="seg" role="group" aria-label="طريقة تسجيل العناوين">' +
       '<button type="button" data-act="tech-mode" data-pid="' + escAttr(pid) + '" data-mode="table" ' +
         'aria-pressed="' + (!isText) + '">📋 جدول</button>' +
       '<button type="button" data-act="tech-mode" data-pid="' + escAttr(pid) + '" data-mode="text" ' +
-        'aria-pressed="' + isText + '">✍️ كتابة حرة</button>' +
+        'aria-pressed="' + isText + '">📝 نوتات</button>' +
     '</div>';
 
   return '<div class="panel">' +
@@ -4995,14 +4872,15 @@ function techPanelHtml(p){
     '<div class="panel">' +
       '<div class="panel-head"><h3>عناوين PLC / SCADA</h3><div class="panel-actions">' +
         (isText
-          ? '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-text-edit" data-pid="' + escAttr(pid) + '">✎ تعديل</button>'
+          ? '<span class="muted">' + notes.length + ' نوتة</span>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-act="note-new" data-pid="' + escAttr(pid) + '">+ نوتة</button>'
           : '<span class="muted">' + all.length + ' إشارة</span>' +
             '<button type="button" class="btn btn-ghost btn-sm" data-act="iotag-new" data-pid="' + escAttr(pid) + '">+ إشارة</button>') +
       '</div></div>' +
       // المفتاح في سطر لوحده — جوه رأس اللوحة بيتزنق على الشاشات الصغيرة
       '<div style="margin-bottom:12px">' + modeSeg + '</div>' +
       (isText
-        ? freeHtml
+        ? notesHtml
         : searchHtml + '<div id="ioTagsBody">' + ioTagsTableHtml(p) + '</div>') +
     '</div>';
 }
@@ -5018,33 +4896,95 @@ Actions['tech-mode'] = function(el){
   Actions['project-open']({ dataset:{ id:p.id } });
 };
 
-Actions['tech-text-edit'] = function(el){
+/* ---------- النوتات ----------
+   كل مشروع ممكن يكون فيه كذا نوتة، كل واحدة بعنوان ومحتوى. */
+function noteById(p, id){
+  return ((p.tech && p.tech.noteList) || []).find(n => n.id === id) || null;
+}
+
+function noteEditorHtml(p, n){
+  return '<div class="field"><label for="fNoteTitle">عنوان النوتة</label>' +
+      '<input id="fNoteTitle" dir="auto" value="' + escAttr(n ? n.title : '') + '" ' +
+      'placeholder="مثال: عناوين لوحة الطلمبات"></div>' +
+    '<div class="field span-2"><label for="fNoteBody">المحتوى</label>' +
+      '<textarea id="fNoteBody" dir="auto" style="min-height:320px;font-family:monospace;line-height:1.9" ' +
+      'placeholder="اكتب زي ما تحب — مثال:&#10;Q0.0  طلمبة 1 تشغيل   PMP1_RUN&#10;I0.3  طلمبة 1 عطل     PMP1_FLT">' +
+      esc(n ? n.body : '') + '</textarea></div>' +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="note-save" data-pid="' + escAttr(p.id) + '"' +
+        (n ? ' data-id="' + escAttr(n.id) + '"' : '') + '>حفظ</button>' +
+      (n ? '<button type="button" class="btn btn-danger" data-act="note-del" data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(n.id) + '">حذف النوتة</button>' : '') +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
+    '</div>';
+}
+
+Actions['note-new'] = function(el){
   const p = projectById(el.dataset.pid);
   if (!p) return;
-  Modal.open('كتابة حرة — ' + p.name,
-    '<div class="field span-2"><label for="fTechFree">العناوين والملاحظات</label>' +
-      '<textarea id="fTechFree" dir="auto" style="min-height:340px;font-family:monospace;line-height:1.9" ' +
-      'placeholder="اكتب زي ما تحب — مثال:&#10;Q0.0  طلمبة 1 تشغيل   PMP1_RUN&#10;I0.3  طلمبة 1 عطل     PMP1_FLT">' +
-      esc((p.tech && p.tech.freeText) || '') + '</textarea></div>' +
-    '<div class="form-actions">' +
-      '<button type="button" class="btn btn-primary" data-act="tech-text-save" data-pid="' + escAttr(p.id) + '">حفظ</button>' +
-      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
-    '</div>',
-    { wide:true });
-  const ta = byId('fTechFree');
+  Modal.open('نوتة جديدة', noteEditorHtml(p, null), { wide:true });
+  if (byId('fNoteTitle')) byId('fNoteTitle').focus();
+};
+
+Actions['note-open'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  const n = noteById(p, el.dataset.id);
+  if (!n) return;
+  Modal.open(esc(n.title || 'نوتة'), noteEditorHtml(p, n), { wide:true });
+  const ta = byId('fNoteBody');
   if (ta) ta.focus();
 };
 
-Actions['tech-text-save'] = function(el){
+Actions['note-save'] = function(el){
   const p = projectById(el.dataset.pid);
   if (!p) return;
+
+  const title = byId('fNoteTitle').value.trim();
+  const body  = byId('fNoteBody').value;
+
+  if (!title && !body.trim()) {
+    Toast.warn('اكتب عنوان أو محتوى للنوتة.');
+    byId('fNoteTitle').focus();
+    return;
+  }
+
   p.tech = p.tech || {};
-  p.tech.freeText = byId('fTechFree') ? byId('fTechFree').value : '';
-  Data.logActivity('update', 'تعديل العناوين (كتابة حرة): ' + p.name);
+  p.tech.noteList = p.tech.noteList || [];
+
+  if (el.dataset.id) {
+    const n = noteById(p, el.dataset.id);
+    if (n) { n.title = title; n.body = body; n.updated = Date.now(); }
+    Data.logActivity('update', 'تعديل نوتة في ' + p.name + ': ' + (title || 'من غير عنوان'));
+  } else {
+    p.tech.noteList.push({
+      id: uid(), title, body,
+      created: Date.now(), updated: Date.now()
+    });
+    Data.logActivity('create', 'إضافة نوتة في ' + p.name + ': ' + (title || 'من غير عنوان'));
+  }
+
   renderUI();
   Data.save().catch(handleSaveError);
   Actions['project-open']({ dataset:{ id:p.id } });
-  Toast.ok('تم الحفظ');
+  Toast.ok('تم حفظ النوتة');
+};
+
+Actions['note-del'] = async function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  const n = noteById(p, el.dataset.id);
+  if (!n) return;
+  const ok = await confirmAction({
+    title:'حذف النوتة',
+    message:'هتحذف "' + (n.title || 'النوتة') + '" وكل اللي مكتوب فيها نهائياً.',
+    confirmLabel:'حذف'
+  });
+  if (!ok) { Actions['project-open']({ dataset:{ id:p.id } }); return; }
+  p.tech.noteList = p.tech.noteList.filter(x => x.id !== n.id);
+  Data.logActivity('delete', 'حذف نوتة من ' + p.name + ': ' + (n.title || 'من غير عنوان'));
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:p.id } });
 };
 
 /* ---------- تعديل المعلومات العامة ---------- */
@@ -5304,72 +5244,6 @@ Actions['addition-del'] = async function(el){
   if (!ok) return;
   p.additions = (p.additions || []).filter(a => a.id !== id);
   Data.logActivity('delete', 'حذف زيادة شغل من ' + p.name);
-  renderUI();
-  Data.save().catch(handleSaveError);
-  Actions['project-open']({ dataset:{ id:pid } });
-};
-
-/* ---------- مراحل الشغل: ما تم وما تبقى ---------- */
-Actions['task-new'] = function(el){
-  const pid = el.dataset.pid;
-  Modal.open('إضافة مرحلة شغل',
-    '<div class="form-grid">' +
-      '<div class="field span-2"><label for="fTaskTitle">وصف المرحلة</label>' +
-        '<input id="fTaskTitle" placeholder="مثال: تركيب اللوحة الرئيسية"></div>' +
-      '<div class="field"><label for="fTaskDate">التاريخ (اختياري)</label>' +
-        '<input id="fTaskDate" type="date" value="' + today() + '"></div>' +
-    '</div>' +
-    '<div class="form-actions">' +
-      '<button type="button" class="btn btn-primary" data-act="task-save" data-pid="' + escAttr(pid) + '">إضافة</button>' +
-      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(pid) + '">رجوع</button>' +
-    '</div>');
-};
-
-Actions['task-save'] = function(el){
-  const pid = el.dataset.pid;
-  const title = byId('fTaskTitle').value.trim();
-  if (!title) { Toast.warn('اكتب وصف المرحلة.'); byId('fTaskTitle').focus(); return; }
-  const p = projectById(pid);
-  if (!p) return;
-  if (!Array.isArray(p.tasks)) p.tasks = [];
-  p.tasks.push({
-    id: uid(),
-    title,
-    date: byId('fTaskDate').value,
-    done: false,
-    created: Date.now()
-  });
-  Data.logActivity('create', 'إضافة مرحلة شغل على ' + p.name + ': ' + title);
-  renderUI();
-  Data.save().catch(handleSaveError);
-  Actions['project-open']({ dataset:{ id:pid } });
-  Toast.ok('تمت إضافة المرحلة');
-};
-
-Actions['task-toggle'] = function(el){
-  const { pid, id } = el.dataset;
-  const p = projectById(pid);
-  if (!p) return;
-  const t = (p.tasks || []).find(x => x.id === id);
-  if (!t) return;
-  t.done = !t.done;
-  renderUI();
-  Data.save().catch(handleSaveError);
-  Actions['project-open']({ dataset:{ id:pid } });
-};
-
-Actions['task-del'] = async function(el){
-  const { pid, id } = el.dataset;
-  const p = projectById(pid);
-  if (!p) return;
-  const ok = await confirmAction({
-    title:'حذف مرحلة الشغل',
-    message:'هيتحذف تسجيل المرحلة دي نهائياً.',
-    confirmLabel:'حذف'
-  });
-  if (!ok) return;
-  p.tasks = (p.tasks || []).filter(t => t.id !== id);
-  Data.logActivity('delete', 'حذف مرحلة شغل من ' + p.name);
   renderUI();
   Data.save().catch(handleSaveError);
   Actions['project-open']({ dataset:{ id:pid } });
@@ -6124,17 +5998,6 @@ Actions['project-print'] = function(el){
       '</tbody></table>'
     : '';
 
-  const tasks = p.tasks || [];
-  const ts = taskStats(p);
-  const tasksHtml = tasks.length
-    ? '<h3 style="margin-top:22px">مراحل الشغل — ما تم وما تبقى (' + ts.done + ' من ' + ts.total + ')</h3>' +
-      '<table><thead><tr><th>المرحلة</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
-      tasks.slice().sort((a, b) => (a.done === b.done) ? (a.created || 0) - (b.created || 0) : (a.done ? 1 : -1))
-        .map(t => '<tr><td>' + esc(t.title || '-') + '</td><td>' + esc(t.date || '-') +
-          '</td><td>' + (t.done ? 'تم ✔' : 'متبقي ⏳') + '</td></tr>').join('') +
-      '</tbody></table>'
-    : '';
-
   const mfg = p.manufacturing || [];
   const mfgHtml = mfg.length
     ? '<h3 style="margin-top:22px">التصنيع والتركيب</h3><table><thead><tr>' +
@@ -6168,8 +6031,9 @@ Actions['project-print'] = function(el){
         '<div><strong>المقبوض:</strong> ' + esc(money(s.inSum)) + '</div>' +
         '<div><strong>المتبقي:</strong> ' + esc(money(s.remaining)) + '</div>' +
         '<div><strong>التكاليف:</strong> ' + esc(money(s.costs)) + '</div>' +
+        '<div><strong>الربح:</strong> ' + esc(money(s.profit)) + '</div>' +
       '</div>' +
-      tasksHtml + additionsHtml + mfgHtml +
+      additionsHtml + mfgHtml +
       '<h3 style="margin-top:22px">حركات المشروع</h3>' +
       '<table><thead><tr><th>التاريخ</th><th>النوع</th><th>البيان</th><th>الطرف</th><th>المبلغ</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
