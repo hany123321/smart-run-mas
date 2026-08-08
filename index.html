@@ -4970,12 +4970,6 @@ function techPanelHtml(p){
         'placeholder="بحث بالبيان أو العنوان..." aria-label="بحث في العناوين"></span></div>'
     : '';
 
-  /* ---- الكتابة الحرة ---- */
-  const freeHtml = (tech.freeText || '').trim()
-    ? '<div class="li-meta" dir="auto" style="white-space:pre-wrap;font-family:monospace;' +
-        'font-size:13px;line-height:1.9">' + esc(tech.freeText) + '</div>'
-    : emptyState('✍️', 'الصفحة فاضية', 'اضغط "تعديل" واكتب العناوين زي ما تحب.');
-
   /* ---- مفتاح الوضع: جدول ولا كتابة حرة ---- */
   const isText = tech.mode === 'text';
   const modeSeg =
@@ -4995,14 +4989,15 @@ function techPanelHtml(p){
     '<div class="panel">' +
       '<div class="panel-head"><h3>عناوين PLC / SCADA</h3><div class="panel-actions">' +
         (isText
-          ? '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-text-edit" data-pid="' + escAttr(pid) + '">✎ تعديل</button>'
+          ? '<span class="muted">' + ensureFreeNotes(p).length + ' نوتة</span>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-note-new" data-pid="' + escAttr(pid) + '">+ نوتة</button>'
           : '<span class="muted">' + all.length + ' إشارة</span>' +
             '<button type="button" class="btn btn-ghost btn-sm" data-act="iotag-new" data-pid="' + escAttr(pid) + '">+ إشارة</button>') +
       '</div></div>' +
       // المفتاح في سطر لوحده — جوه رأس اللوحة بيتزنق على الشاشات الصغيرة
       '<div style="margin-bottom:12px">' + modeSeg + '</div>' +
       (isText
-        ? freeHtml
+        ? techFreeNotesHtml(p)
         : searchHtml + '<div id="ioTagsBody">' + ioTagsTableHtml(p) + '</div>') +
     '</div>';
 }
@@ -5018,33 +5013,126 @@ Actions['tech-mode'] = function(el){
   Actions['project-open']({ dataset:{ id:p.id } });
 };
 
-Actions['tech-text-edit'] = function(el){
+/* ---------- الكتابة الحرة كنوتات، وكل نوتة ليها عنوان ---------- */
+
+/* بترجع مصفوفة النوتات، وأول مرة بتتفتح بتهاجر أي كتابة حرة قديمة
+   (من قبل ما كان فيه نوتات) لنوتة واحدة عشان محدش يفقد كلامه القديم. */
+function ensureFreeNotes(p){
+  p.tech = p.tech || {};
+  if (!Array.isArray(p.tech.freeNotes)) {
+    p.tech.freeNotes = (p.tech.freeText && p.tech.freeText.trim())
+      ? [{ id: uid(), title:'ملاحظة', text:p.tech.freeText, created:Date.now() }]
+      : [];
+  }
+  return p.tech.freeNotes;
+}
+
+function techFreeNotesHtml(p){
+  const pid = p.id;
+  const notes = ensureFreeNotes(p);
+  if (!notes.length) {
+    return emptyState('✍️', 'مفيش نوتات لسه', 'اضغط "+ نوتة" وضيف أول نوتة بعنوانها.');
+  }
+  return notes.map(n =>
+    '<div class="list-item has-accent" style="flex-direction:column;align-items:stretch;border-inline-start-color:var(--accent)">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<div class="li-title">📝 ' + esc(n.title || 'بدون عنوان') + '</div>' +
+        '<div class="li-side">' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-note-edit" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">✎ تعديل</button>' +
+          '<button type="button" class="btn btn-danger btn-sm" data-act="tech-note-del" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">حذف</button>' +
+        '</div>' +
+      '</div>' +
+      (n.text && n.text.trim()
+        ? '<div dir="auto" style="white-space:pre-wrap;font-family:monospace;font-size:13px;line-height:1.9;margin-top:8px">' + esc(n.text) + '</div>'
+        : '<div class="li-meta" style="margin-top:6px">النوتة دي فاضية.</div>') +
+    '</div>'
+  ).join('');
+}
+
+function techNoteFormHtml(n){
+  return '<div class="form-grid one-col">' +
+      '<div class="field"><label for="fNoteTitle">عنوان النوتة</label>' +
+        '<input id="fNoteTitle" value="' + escAttr(n ? (n.title || '') : '') + '" placeholder="مثال: عناوين اللوحة الرئيسية"></div>' +
+      '<div class="field"><label for="fNoteText">المحتوى</label>' +
+        '<textarea id="fNoteText" dir="auto" style="min-height:300px;font-family:monospace;line-height:1.9" ' +
+        'placeholder="اكتب زي ما تحب — مثال:&#10;Q0.0  طلمبة 1 تشغيل   PMP1_RUN&#10;I0.3  طلمبة 1 عطل     PMP1_FLT">' +
+        esc(n ? (n.text || '') : '') + '</textarea></div>' +
+    '</div>';
+}
+
+Actions['tech-note-new'] = function(el){
+  const pid = el.dataset.pid;
+  Modal.open('إضافة نوتة',
+    techNoteFormHtml(null) +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="tech-note-save" data-pid="' + escAttr(pid) + '">إضافة</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(pid) + '">رجوع</button>' +
+    '</div>',
+    { wide:true });
+  if (byId('fNoteTitle')) byId('fNoteTitle').focus();
+};
+
+Actions['tech-note-edit'] = function(el){
   const p = projectById(el.dataset.pid);
   if (!p) return;
-  Modal.open('كتابة حرة — ' + p.name,
-    '<div class="field span-2"><label for="fTechFree">العناوين والملاحظات</label>' +
-      '<textarea id="fTechFree" dir="auto" style="min-height:340px;font-family:monospace;line-height:1.9" ' +
-      'placeholder="اكتب زي ما تحب — مثال:&#10;Q0.0  طلمبة 1 تشغيل   PMP1_RUN&#10;I0.3  طلمبة 1 عطل     PMP1_FLT">' +
-      esc((p.tech && p.tech.freeText) || '') + '</textarea></div>' +
+  const n = ensureFreeNotes(p).find(x => x.id === el.dataset.id);
+  if (!n) return;
+  Modal.open('تعديل نوتة',
+    techNoteFormHtml(n) +
     '<div class="form-actions">' +
-      '<button type="button" class="btn btn-primary" data-act="tech-text-save" data-pid="' + escAttr(p.id) + '">حفظ</button>' +
+      '<button type="button" class="btn btn-primary" data-act="tech-note-save" data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(n.id) + '">حفظ التعديل</button>' +
       '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
     '</div>',
     { wide:true });
-  const ta = byId('fTechFree');
-  if (ta) ta.focus();
+  if (byId('fNoteTitle')) byId('fNoteTitle').focus();
 };
 
-Actions['tech-text-save'] = function(el){
+Actions['tech-note-save'] = function(el){
   const p = projectById(el.dataset.pid);
   if (!p) return;
-  p.tech = p.tech || {};
-  p.tech.freeText = byId('fTechFree') ? byId('fTechFree').value : '';
-  Data.logActivity('update', 'تعديل العناوين (كتابة حرة): ' + p.name);
+  const notes = ensureFreeNotes(p);
+
+  const title = byId('fNoteTitle').value.trim();
+  const text  = byId('fNoteText').value;
+
+  if (!title && !text.trim()) {
+    Toast.warn('اكتب عنوان أو محتوى على الأقل.');
+    byId('fNoteTitle').focus();
+    return;
+  }
+
+  if (el.dataset.id) {
+    const n = notes.find(x => x.id === el.dataset.id);
+    if (n) { n.title = title; n.text = text; n.updated = Date.now(); }
+    Data.logActivity('update', 'تعديل نوتة في ' + p.name + ': ' + (title || 'بدون عنوان'));
+  } else {
+    notes.push({ id: uid(), title, text, created: Date.now() });
+    Data.logActivity('create', 'إضافة نوتة في ' + p.name + ': ' + (title || 'بدون عنوان'));
+  }
+
   renderUI();
   Data.save().catch(handleSaveError);
   Actions['project-open']({ dataset:{ id:p.id } });
   Toast.ok('تم الحفظ');
+};
+
+Actions['tech-note-del'] = async function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  const notes = ensureFreeNotes(p);
+  const n = notes.find(x => x.id === el.dataset.id);
+  if (!n) return;
+  const ok = await confirmAction({
+    title:'حذف النوتة',
+    message:'هتحذف "' + (n.title || 'النوتة') + '" نهائياً.',
+    confirmLabel:'حذف'
+  });
+  if (!ok) return;
+  p.tech.freeNotes = notes.filter(x => x.id !== n.id);
+  Data.logActivity('delete', 'حذف نوتة من ' + p.name);
+  renderUI();
+  Data.save().catch(handleSaveError);
+  Actions['project-open']({ dataset:{ id:p.id } });
 };
 
 /* ---------- تعديل المعلومات العامة ---------- */
