@@ -5033,20 +5033,52 @@ function techFreeNotesHtml(p){
   if (!notes.length) {
     return emptyState('✍️', 'مفيش نوتات لسه', 'اضغط "+ نوتة" وضيف أول نوتة بعنوانها.');
   }
-  return notes.map(n =>
-    '<div class="list-item has-accent" style="flex-direction:column;align-items:stretch;border-inline-start-color:var(--accent)">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
-        '<div class="li-title">📝 ' + esc(n.title || 'بدون عنوان') + '</div>' +
-        '<div class="li-side">' +
-          '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-note-edit" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">✎ تعديل</button>' +
-          '<button type="button" class="btn btn-danger btn-sm" data-act="tech-note-del" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">حذف</button>' +
+  return notes.map(n => {
+    const imgs = n.images || [];
+    const thumbsHtml = imgs.length
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+          imgs.slice(0, 6).map((src, i) =>
+            '<img src="' + src + '" data-act="tech-note-img-view" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '" data-idx="' + i + '" ' +
+            'style="width:54px;height:54px;object-fit:cover;border-radius:var(--r-sm);cursor:pointer;border:1px solid var(--bd)" alt="صورة النوتة">'
+          ).join('') +
+          (imgs.length > 6 ? '<div class="li-meta" style="align-self:center">+' + (imgs.length - 6) + '</div>' : '') +
+        '</div>'
+      : '';
+    return (
+      '<div class="list-item has-accent" style="flex-direction:column;align-items:stretch;border-inline-start-color:var(--accent)">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+          '<div class="li-title">📝 ' + esc(n.title || 'بدون عنوان') + '</div>' +
+          '<div class="li-side">' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-note-view" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">👁 فتح</button>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-note-edit" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">✎ تعديل</button>' +
+            '<button type="button" class="btn btn-danger btn-sm" data-act="tech-note-del" data-pid="' + escAttr(pid) + '" data-id="' + escAttr(n.id) + '">حذف</button>' +
+          '</div>' +
         '</div>' +
-      '</div>' +
-      (n.text && n.text.trim()
-        ? '<div dir="auto" style="white-space:pre-wrap;font-family:monospace;font-size:13px;line-height:1.9;margin-top:8px">' + esc(n.text) + '</div>'
-        : '<div class="li-meta" style="margin-top:6px">النوتة دي فاضية.</div>') +
-    '</div>'
-  ).join('');
+        (n.text && n.text.trim()
+          ? '<div dir="auto" style="white-space:pre-wrap;font-family:monospace;font-size:13px;line-height:1.9;margin-top:8px">' + esc(n.text) + '</div>'
+          : (imgs.length ? '' : '<div class="li-meta" style="margin-top:6px">النوتة دي فاضية.</div>')) +
+        thumbsHtml +
+      '</div>'
+    );
+  }).join('');
+}
+
+/* بيانات الصور اللي بتتحضّر جوّه نافذة إضافة/تعديل النوتة، لحد ما تتحفظ */
+let noteImagesDraft = [];
+
+function noteImagesPreviewHtml(){
+  if (!noteImagesDraft.length) {
+    return '<div class="li-meta">لسه مفيش صور مرفوعة.</div>';
+  }
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+    noteImagesDraft.map((src, i) =>
+      '<div style="position:relative">' +
+        '<img src="' + src + '" style="width:74px;height:74px;object-fit:cover;border-radius:var(--r-sm);border:1px solid var(--bd)" alt="صورة">' +
+        '<button type="button" class="btn btn-danger btn-sm" data-act="tech-note-img-del" data-idx="' + i + '" ' +
+          'style="position:absolute;top:-8px;left:-8px;padding:0 6px;line-height:1.6;border-radius:999px">×</button>' +
+      '</div>'
+    ).join('') +
+  '</div>';
 }
 
 function techNoteFormHtml(n){
@@ -5054,21 +5086,115 @@ function techNoteFormHtml(n){
       '<div class="field"><label for="fNoteTitle">عنوان النوتة</label>' +
         '<input id="fNoteTitle" value="' + escAttr(n ? (n.title || '') : '') + '" placeholder="مثال: عناوين اللوحة الرئيسية"></div>' +
       '<div class="field"><label for="fNoteText">المحتوى</label>' +
-        '<textarea id="fNoteText" dir="auto" style="min-height:300px;font-family:monospace;line-height:1.9" ' +
+        '<textarea id="fNoteText" dir="auto" style="min-height:260px;font-family:monospace;line-height:1.9" ' +
         'placeholder="اكتب زي ما تحب — مثال:&#10;Q0.0  طلمبة 1 تشغيل   PMP1_RUN&#10;I0.3  طلمبة 1 عطل     PMP1_FLT">' +
         esc(n ? (n.text || '') : '') + '</textarea></div>' +
+      '<div class="field">' +
+        '<label>صور النوتة</label>' +
+        '<input type="file" id="fNoteImageInput" accept="image/*" multiple hidden>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act="tech-note-img-upload" style="margin-bottom:8px">📷 رفع صورة</button>' +
+        '<div id="fNoteImagesPreview">' + noteImagesPreviewHtml() + '</div>' +
+      '</div>' +
     '</div>';
 }
 
+function wireNoteImageInput(){
+  const fi = byId('fNoteImageInput');
+  if (!fi) return;
+  fi.addEventListener('change', async function(e){
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    await handleNoteImageFiles(files);
+  });
+}
+
+async function handleNoteImageFiles(files){
+  if (!files.length) return;
+  const info = Data.storageInfo();
+  if (info.level === 'danger') {
+    Toast.err('المساحة ممتلئة تقريباً. امسح صور قديمة قبل ما ترفع صور جديدة.');
+    return;
+  }
+  Toast.info('جاري ضغط ورفع ' + files.length + ' صورة...');
+  let added = 0, failed = 0;
+  for (const file of files) {
+    try {
+      const compressed = await compressImage(file, {
+        maxDim:   STORAGE_LIMITS.portfolioMaxDim,
+        quality:  STORAGE_LIMITS.portfolioQuality,
+        maxBytes: STORAGE_LIMITS.portfolioMaxBytes
+      });
+      const projected = Data.docBytes(db) + compressed.length;
+      if (projected > STORAGE_LIMITS.docSafeBytes) {
+        Toast.err('توقف الرفع: المساحة المتاحة خلصت بعد ' + added + ' صورة.');
+        break;
+      }
+      noteImagesDraft.push(compressed);
+      added++;
+    } catch(err){
+      console.error('note image upload error', err);
+      failed++;
+      Toast.err(file.name + ': ' + (err.message || 'تعذر رفع الصورة'));
+    }
+  }
+  if (added) setHtml('fNoteImagesPreview', noteImagesPreviewHtml());
+  if (failed && !added) return;
+}
+
+Actions['tech-note-img-upload'] = function(){
+  const fi = byId('fNoteImageInput');
+  if (fi) fi.click();
+};
+
+Actions['tech-note-img-del'] = function(el){
+  noteImagesDraft.splice(+el.dataset.idx, 1);
+  setHtml('fNoteImagesPreview', noteImagesPreviewHtml());
+};
+
+Actions['tech-note-img-view'] = function(el){
+  const p = projectById(el.dataset.pid);
+  const n = p && ensureFreeNotes(p).find(x => x.id === el.dataset.id);
+  const src = n && n.images && n.images[+el.dataset.idx];
+  if (src) openLightbox(src, n.title || '');
+};
+
+Actions['tech-note-view'] = function(el){
+  const p = projectById(el.dataset.pid);
+  if (!p) return;
+  const n = ensureFreeNotes(p).find(x => x.id === el.dataset.id);
+  if (!n) return;
+  const imgs = n.images || [];
+  const imagesHtml = imgs.length
+    ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:14px">' +
+        imgs.map((src, i) =>
+          '<img src="' + src + '" data-act="tech-note-img-view" data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(n.id) + '" data-idx="' + i + '" ' +
+          'style="width:100%;height:92px;object-fit:cover;border-radius:var(--r-md);cursor:pointer;border:1px solid var(--bd)" alt="صورة النوتة">'
+        ).join('') +
+      '</div>'
+    : '';
+  Modal.open(n.title || 'نوتة',
+    (n.text && n.text.trim()
+      ? '<div dir="auto" style="white-space:pre-wrap;font-family:monospace;font-size:13.5px;line-height:1.9">' + esc(n.text) + '</div>'
+      : (imgs.length ? '' : '<div class="li-meta">النوتة دي فاضية.</div>')) +
+    imagesHtml +
+    '<div class="form-actions">' +
+      '<button type="button" class="btn btn-primary" data-act="tech-note-edit" data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(n.id) + '">✎ تعديل</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">إغلاق</button>' +
+    '</div>',
+    { wide:true });
+};
+
 Actions['tech-note-new'] = function(el){
   const pid = el.dataset.pid;
+  noteImagesDraft = [];
   Modal.open('إضافة نوتة',
     techNoteFormHtml(null) +
     '<div class="form-actions">' +
       '<button type="button" class="btn btn-primary" data-act="tech-note-save" data-pid="' + escAttr(pid) + '">إضافة</button>' +
-      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(pid) + '">رجوع</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">إلغاء</button>' +
     '</div>',
     { wide:true });
+  wireNoteImageInput();
   if (byId('fNoteTitle')) byId('fNoteTitle').focus();
 };
 
@@ -5077,13 +5203,15 @@ Actions['tech-note-edit'] = function(el){
   if (!p) return;
   const n = ensureFreeNotes(p).find(x => x.id === el.dataset.id);
   if (!n) return;
+  noteImagesDraft = (n.images || []).slice();
   Modal.open('تعديل نوتة',
     techNoteFormHtml(n) +
     '<div class="form-actions">' +
       '<button type="button" class="btn btn-primary" data-act="tech-note-save" data-pid="' + escAttr(p.id) + '" data-id="' + escAttr(n.id) + '">حفظ التعديل</button>' +
-      '<button type="button" class="btn btn-ghost" data-act="project-open" data-id="' + escAttr(p.id) + '">رجوع</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">إلغاء</button>' +
     '</div>',
     { wide:true });
+  wireNoteImageInput();
   if (byId('fNoteTitle')) byId('fNoteTitle').focus();
 };
 
@@ -5092,27 +5220,29 @@ Actions['tech-note-save'] = function(el){
   if (!p) return;
   const notes = ensureFreeNotes(p);
 
-  const title = byId('fNoteTitle').value.trim();
-  const text  = byId('fNoteText').value;
+  const title  = byId('fNoteTitle').value.trim();
+  const text   = byId('fNoteText').value;
+  const images = noteImagesDraft.slice();
 
-  if (!title && !text.trim()) {
-    Toast.warn('اكتب عنوان أو محتوى على الأقل.');
+  if (!title && !text.trim() && !images.length) {
+    Toast.warn('اكتب عنوان أو محتوى أو ارفع صورة على الأقل.');
     byId('fNoteTitle').focus();
     return;
   }
 
   if (el.dataset.id) {
     const n = notes.find(x => x.id === el.dataset.id);
-    if (n) { n.title = title; n.text = text; n.updated = Date.now(); }
+    if (n) { n.title = title; n.text = text; n.images = images; n.updated = Date.now(); }
     Data.logActivity('update', 'تعديل نوتة في ' + p.name + ': ' + (title || 'بدون عنوان'));
   } else {
-    notes.push({ id: uid(), title, text, created: Date.now() });
+    notes.push({ id: uid(), title, text, images, created: Date.now() });
     Data.logActivity('create', 'إضافة نوتة في ' + p.name + ': ' + (title || 'بدون عنوان'));
   }
 
+  noteImagesDraft = [];
+  Modal.close();
   renderUI();
   Data.save().catch(handleSaveError);
-  Actions['project-open']({ dataset:{ id:p.id } });
   Toast.ok('تم الحفظ');
 };
 
@@ -5130,9 +5260,9 @@ Actions['tech-note-del'] = async function(el){
   if (!ok) return;
   p.tech.freeNotes = notes.filter(x => x.id !== n.id);
   Data.logActivity('delete', 'حذف نوتة من ' + p.name);
+  Modal.close();
   renderUI();
   Data.save().catch(handleSaveError);
-  Actions['project-open']({ dataset:{ id:p.id } });
 };
 
 /* ---------- تعديل المعلومات العامة ---------- */
