@@ -2166,7 +2166,8 @@ function printStyles(accent){
     th{background:#f6f6f6;font-weight:700}
     tbody tr:nth-child(even){background:#fbfbfb}
     .amount{text-align:left;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:break-word}
-    .totals{margin-top:18px;width:320px;max-width:100%;margin-inline-start:auto}
+    .totals{margin-top:18px;width:360px;max-width:100%;margin-inline-start:auto}
+    .totals .sub{font-weight:800;border-bottom:1px solid #ccc}
     .totals div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;gap:10px}
     .totals div span:last-child{overflow-wrap:break-word;word-break:break-word;text-align:left}
     .totals .grand{font-weight:900;font-size:17px;border-bottom:none;
@@ -3490,12 +3491,13 @@ function printDoc(kind, docId){
       '<div class="totals">' +
         '<div><span>إجمالي المكونات</span><span>' + esc(money(compTotal)) + '</span></div>' +
         (cfg.hasLabor
-          ? LABOR_PARTS.filter(([k]) => +(doc.laborParts || {})[k]).map(([k, label]) =>
-              '<div><span>' + esc(label) + '</span><span>' + esc(money(+doc.laborParts[k])) + '</span></div>'
+          // كل التكاليف بتتطبع دايماً (حتى اللي بصفر)، و«Other» بس لو فيها رقم
+          ? LABOR_PARTS.filter(([k]) => k !== 'other' || +(doc.laborParts || {})[k]).map(([k, label]) =>
+              '<div><span>' + esc(label) + '</span><span>' + esc(money(+(doc.laborParts || {})[k] || 0)) + '</span></div>'
             ).join('') +
-            '<div><span>إجمالي تكلفة العمل</span><span>' + esc(money(labor)) + '</span></div>'
+            '<div class="sub"><span>إجمالي تكلفة العمل</span><span>' + esc(money(labor)) + '</span></div>'
           : '') +
-        '<div class="grand"><span>الإجمالي الكلي</span><span>' + esc(money(grand)) + '</span></div>' +
+        '<div class="grand"><span>' + (cfg.hasLabor ? 'إجمالي التكلفة' : 'الإجمالي الكلي') + '</span><span>' + esc(money(grand)) + '</span></div>' +
       '</div>' +
       footer +
     '</div></body></html>';
