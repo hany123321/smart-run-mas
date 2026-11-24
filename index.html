@@ -3220,8 +3220,11 @@ function docModalBody(kind){
   '</div>' +
 
   '<div class="form-actions">' +
-    '<button type="button" class="btn btn-primary" data-act="draft-save">حفظ ' + esc(cfg.label) + '</button>' +
-    '<button type="button" class="btn btn-ghost" data-act="modal-close">إلغاء</button>' +
+    '<button type="button" class="btn btn-primary" data-act="draft-save">حفظ وقفل</button>' +
+    '<button type="button" class="btn btn-ghost" data-act="modal-close">قفل</button>' +
+    '<span id="dAutoSave" class="muted" role="status" aria-live="polite" style="align-self:center;font-size:13px">' +
+      (String(currentDraft.clientName || '').trim() ? 'الحفظ تلقائي' : 'اكتب اسم العميل علشان يتحفظ تلقائي') +
+    '</span>' +
   '</div>';
 }
 
@@ -3246,6 +3249,66 @@ function refreshDraftTotals(){
   setText('dComponentsTotal', fmt(itemsTotal(currentDraft.items)));
   setText('dLaborTotal', fmt(currentDraft.labor || 0));
   setText('dGrandTotal', fmt(docGrandTotal(kind, currentDraft)));
+  scheduleDraftAutosave();
+}
+
+/* ---------- الحفظ التلقائي ----------
+   أي تعديل في المستند (بند، عدد، سعر، اسم العميل...) بيتحفظ لوحده بعد
+   ثانية من آخر كتابة — من غير ما تدوس «حفظ». بنحفظ نسخة من المسودة
+   (من غير البنود الفاضية) عشان الصفوف الفاضية تفضل قدامك في الجدول. */
+let _draftAutosaveTimer = null;
+
+function draftAutosaveStatus(text){
+  const el = byId('dAutoSave');
+  if (el) el.textContent = text;
+}
+
+function scheduleDraftAutosave(){
+  if (!currentDraft || !currentDraftKind) return;
+  clearTimeout(_draftAutosaveTimer);
+  if (!String(currentDraft.clientName || '').trim()) {
+    draftAutosaveStatus('اكتب اسم العميل علشان يتحفظ تلقائي');
+    return;
+  }
+  draftAutosaveStatus('جاري الحفظ…');
+  _draftAutosaveTimer = setTimeout(autosaveDraft, 900);
+}
+
+function autosaveDraft(){
+  _draftAutosaveTimer = null;
+  const kind = currentDraftKind;
+  const cfg = DOC_KINDS[kind];
+  if (!currentDraft || !cfg || !String(currentDraft.clientName || '').trim()) return;
+
+  const copy = JSON.parse(JSON.stringify(currentDraft));
+  copy.items = (copy.items || []).filter(
+    it => String(it.name || '').trim() || (+it.qty && +it.price) || (+it.price)
+  );
+
+  const list = docList(kind);
+  const idx = list.findIndex(d => d.id === copy.id);
+  const isNew = idx < 0;
+  if (isNew) {
+    if (!copy.items.length && !(+copy.labor)) {   // لسه مفيش حاجة تتحفظ
+      draftAutosaveStatus('الحفظ تلقائي — ضيف بند');
+      return;
+    }
+    list.push(copy);
+    if (cfg.hasNumber) {
+      db.nextInvoiceNumber = Math.max(+db.nextInvoiceNumber || 1, (+copy.number || 0) + 1);
+    }
+    Data.logActivity('create', 'إضافة ' + cfg.label + ' — ' + (copy.clientName || ''));
+  } else {
+    list[idx] = copy;
+  }
+
+  renderUI();
+  Data.save()
+    .then(ok => {
+      const t = new Date().toLocaleTimeString('ar-EG', { hour:'2-digit', minute:'2-digit' });
+      draftAutosaveStatus(ok === false ? 'اتحفظ على الجهاز — هيترفع لما النت يرجع' : '✓ اتحفظ تلقائي ' + t);
+    })
+    .catch(err => { draftAutosaveStatus('⚠ ماتحفظش'); handleSaveError(err); });
 }
 
 function redrawDraftRows(){
@@ -3268,6 +3331,7 @@ Actions['draft-row-del'] = function(el){
 Actions['draft-save'] = function(){
   const kind = currentDraftKind;
   const cfg = DOC_KINDS[kind];
+  clearTimeout(_draftAutosaveTimer);
 
   if (!String(currentDraft.clientName || '').trim()) {
     Toast.warn('اكتب اسم العميل الأول.');
@@ -6818,6 +6882,7 @@ function initEventDelegation(){
       const f = el.dataset.draftField;
       currentDraft[f] = (f === 'labor') ? (+el.value || 0) : el.value;
       if (f === 'labor') refreshDraftTotals();
+      else scheduleDraftAutosave();
       return;
     }
 
@@ -7164,6 +7229,7 @@ const DeltaPrices = (function(){
 
   function place(){
     if (!box || !input) return;
+    if (!input.isConnected) { close(); return; }
     const r = input.getBoundingClientRect();
     const w = Math.max(r.width, Math.min(560, window.innerWidth - 24));
     let left = r.right - w;
@@ -7257,6 +7323,7 @@ const DeltaPrices = (function(){
   document.addEventListener('focusout', e => { if (e.target === input) close(); });
   window.addEventListener('resize', place);
   document.addEventListener('scroll', place, true);
+  setInterval(() => { if (box && (!input || !input.isConnected)) close(); }, 500);
 
   return { search, discount, setDiscount, net, close };
 })();
