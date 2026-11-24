@@ -2659,6 +2659,7 @@ const Data = (function(){
       list.forEach(doc => {
         doc.items = asArray(doc.items);
         doc.labor = asNumber(doc.labor, 0);
+        normalizeLaborParts(doc);
         doc.created = asNumber(doc.created, 0);
         doc.items.forEach(it => {
           it.qty   = asNumber(it.qty, 0);
@@ -3044,6 +3045,38 @@ function docList(kind){
   return db[key];
 }
 
+/* ---------- تكلفة العمل متقسمة ----------
+   labor فاضل هو الإجمالي (عشان القوايم والتقارير والبرنامج)، وتفصيله
+   في laborParts. العروض القديمة اللي ليها رقم واحد بيروح في «أعمال أخرى». */
+const LABOR_PARTS = [
+  ['programming', 'تكلفة Programming'],
+  ['scada',       'تكلفة SCADA'],
+  ['hmi',         'تكلفة HMI'],
+  ['power',       'تكلفة Power & Control'],
+  ['wiring',      'تكلفة Wiring'],
+  ['install',     'تكلفة Installation'],
+  ['other',       'تكلفة Other']
+];
+
+function laborPartsSum(parts){
+  return LABOR_PARTS.reduce((a, [k]) => a + (+(parts || {})[k] || 0), 0);
+}
+
+function normalizeLaborParts(doc){
+  const p = (doc.laborParts && typeof doc.laborParts === 'object' && !Array.isArray(doc.laborParts))
+    ? doc.laborParts : null;
+  const out = {};
+  if (p) {
+    LABOR_PARTS.forEach(([k]) => { const v = +p[k]; if (isFinite(v) && v) out[k] = v; });
+    doc.laborParts = out;
+    doc.labor = laborPartsSum(out);
+  } else {
+    if (+doc.labor) out.other = +doc.labor;
+    doc.laborParts = out;
+  }
+  return doc;
+}
+
 function itemsTotal(items){
   return (items || []).reduce((a, it) => a + (+it.qty || 0) * (+it.price || 0), 0);
 }
@@ -3132,6 +3165,7 @@ function openDocModal(kind, docId){
       date: today(),
       items: [{ name:'', qty:1, price:0 }],
       labor: 0,
+      laborParts: {},
       created: Date.now()
     };
     if (cfg.hasNumber) currentDraft.number = nextInvoiceNumber();
@@ -3202,9 +3236,13 @@ function docModalBody(kind){
   '</table></div>' +
 
   (cfg.hasLabor
-    ? '<div class="form-grid" style="margin-top:16px">' +
-        '<div class="field"><label for="dLabor">تكلفة العمل</label>' +
-        '<input id="dLabor" type="number" min="0" step="any" data-draft-field="labor" value="' + esc(currentDraft.labor) + '"></div>' +
+    ? '<div class="panel-head" style="margin-top:18px"><h3>تكلفة العمل</h3></div>' +
+      '<div class="form-grid">' +
+        LABOR_PARTS.filter(([k]) => k !== 'other' || +(currentDraft.laborParts || {}).other).map(([k, label]) =>
+          '<div class="field"><label for="dLabor_' + k + '">' + esc(label) + '</label>' +
+          '<input id="dLabor_' + k + '" type="number" min="0" step="any" data-labor-part="' + k + '" value="' +
+            esc(+(currentDraft.laborParts || {})[k] || 0) + '"></div>'
+        ).join('') +
       '</div>'
     : '') +
 
@@ -3212,7 +3250,7 @@ function docModalBody(kind){
     '<div class="stat-card"><div class="stat-head"><span class="stat-label">إجمالي المكونات</span></div>' +
       '<div class="stat-value" id="dComponentsTotal">' + esc(fmt(itemsTotal(currentDraft.items))) + '</div></div>' +
     (cfg.hasLabor
-      ? '<div class="stat-card is-blue"><div class="stat-head"><span class="stat-label">تكلفة العمل</span></div>' +
+      ? '<div class="stat-card is-blue"><div class="stat-head"><span class="stat-label">إجمالي تكلفة العمل</span></div>' +
         '<div class="stat-value blue" id="dLaborTotal">' + esc(fmt(currentDraft.labor)) + '</div></div>'
       : '') +
     '<div class="stat-card is-yellow"><div class="stat-head"><span class="stat-label">الإجمالي الكلي</span></div>' +
@@ -3451,7 +3489,12 @@ function printDoc(kind, docId){
       '</tr></thead><tbody>' + rows + '</tbody></table>' +
       '<div class="totals">' +
         '<div><span>إجمالي المكونات</span><span>' + esc(money(compTotal)) + '</span></div>' +
-        (cfg.hasLabor ? '<div><span>تكلفة العمل</span><span>' + esc(money(labor)) + '</span></div>' : '') +
+        (cfg.hasLabor
+          ? LABOR_PARTS.filter(([k]) => +(doc.laborParts || {})[k]).map(([k, label]) =>
+              '<div><span>' + esc(label) + '</span><span>' + esc(money(+doc.laborParts[k])) + '</span></div>'
+            ).join('') +
+            '<div><span>إجمالي تكلفة العمل</span><span>' + esc(money(labor)) + '</span></div>'
+          : '') +
         '<div class="grand"><span>الإجمالي الكلي</span><span>' + esc(money(grand)) + '</span></div>' +
       '</div>' +
       footer +
@@ -6883,6 +6926,14 @@ function initEventDelegation(){
       currentDraft[f] = (f === 'labor') ? (+el.value || 0) : el.value;
       if (f === 'labor') refreshDraftTotals();
       else scheduleDraftAutosave();
+      return;
+    }
+
+    if (el.dataset.laborPart && currentDraft) {
+      if (!currentDraft.laborParts || typeof currentDraft.laborParts !== 'object') currentDraft.laborParts = {};
+      currentDraft.laborParts[el.dataset.laborPart] = +el.value || 0;
+      currentDraft.labor = laborPartsSum(currentDraft.laborParts);
+      refreshDraftTotals();
       return;
     }
 
