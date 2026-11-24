@@ -3055,22 +3055,36 @@ const LABOR_PARTS = [
   ['hmi',         'تكلفة HMI'],
   ['power',       'تكلفة Power & Control'],
   ['wiring',      'تكلفة Wiring'],
+  ['cables',      'تكلفة Cables'],
   ['install',     'تكلفة Installation'],
   ['other',       'تكلفة Other']
 ];
 
-function laborPartsSum(parts){
-  return LABOR_PARTS.reduce((a, [k]) => a + (+(parts || {})[k] || 0), 0);
+/* التكاليف اللي ممكن تتشال من العرض (العرض «بدون» كابلات / تركيب):
+   الرقم بيفضل محفوظ، بس مابيظهرش في الطباعة ولا بيدخل في الإجمالي. */
+const LABOR_OPTIONAL = { cables: 'Cables', install: 'Installation' };
+
+function laborHiddenMap(doc){
+  return (doc && doc.laborHidden && typeof doc.laborHidden === 'object') ? doc.laborHidden : {};
+}
+
+function laborPartsSum(parts, hidden){
+  hidden = hidden || {};
+  return LABOR_PARTS.reduce((a, [k]) => a + (hidden[k] ? 0 : (+(parts || {})[k] || 0)), 0);
 }
 
 function normalizeLaborParts(doc){
   const p = (doc.laborParts && typeof doc.laborParts === 'object' && !Array.isArray(doc.laborParts))
     ? doc.laborParts : null;
+  const h = laborHiddenMap(doc);
+  const hidden = {};
+  Object.keys(LABOR_OPTIONAL).forEach(k => { if (h[k]) hidden[k] = true; });
+  doc.laborHidden = hidden;
   const out = {};
   if (p) {
     LABOR_PARTS.forEach(([k]) => { const v = +p[k]; if (isFinite(v) && v) out[k] = v; });
     doc.laborParts = out;
-    doc.labor = laborPartsSum(out);
+    doc.labor = laborPartsSum(out, hidden);
   } else {
     if (+doc.labor) out.other = +doc.labor;
     doc.laborParts = out;
@@ -3173,6 +3187,7 @@ function openDocModal(kind, docId){
       items: [{ name:'', qty:1, price:0 }],
       labor: 0,
       laborParts: {},
+      laborHidden: {},
       created: Date.now()
     };
     if (cfg.hasNumber) currentDraft.number = nextInvoiceNumber();
@@ -3245,11 +3260,20 @@ function docModalBody(kind){
   (cfg.hasLabor
     ? '<div class="panel-head" style="margin-top:18px"><h3>تكلفة العمل</h3></div>' +
       '<div class="form-grid">' +
-        LABOR_PARTS.filter(([k]) => k !== 'other' || +(currentDraft.laborParts || {}).other).map(([k, label]) =>
-          '<div class="field"><label for="dLabor_' + k + '">' + esc(label) + '</label>' +
-          '<input id="dLabor_' + k + '" type="number" min="0" step="any" data-labor-part="' + k + '" value="' +
-            esc(+(currentDraft.laborParts || {})[k] || 0) + '"></div>'
-        ).join('') +
+        LABOR_PARTS.filter(([k]) => k !== 'other' || +(currentDraft.laborParts || {}).other).map(([k, label]) => {
+          const optional = !!LABOR_OPTIONAL[k];
+          const hidden = optional && !!laborHiddenMap(currentDraft)[k];
+          return '<div class="field" id="dLaborField_' + k + '"' + (hidden ? ' style="opacity:.55"' : '') + '>' +
+            '<label for="dLabor_' + k + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+              '<span>' + esc(label) + '</span>' +
+              (optional
+                ? '<span class="checkbox" style="font-size:12.5px" title="لو اتشالت: مابتظهرش في العرض ومابتدخلش في الإجمالي">' +
+                    '<input type="checkbox" data-labor-show="' + k + '"' + (hidden ? '' : ' checked') + '> في العرض</span>'
+                : '') +
+            '</label>' +
+            '<input id="dLabor_' + k + '" type="number" min="0" step="any" data-labor-part="' + k + '" value="' +
+              esc(+(currentDraft.laborParts || {})[k] || 0) + '"></div>';
+        }).join('') +
       '</div>'
     : '') +
 
@@ -3597,13 +3621,18 @@ function printDoc(kind, docId, asHtml){
         '<div><span>إجمالي المكونات</span><span>' + esc(money(compTotal)) + '</span></div>' +
         (cfg.hasLabor
           // كل التكاليف بتتطبع دايماً (حتى اللي بصفر)، و«Other» بس لو فيها رقم
-          ? LABOR_PARTS.filter(([k]) => k !== 'other' || +(doc.laborParts || {})[k]).map(([k, label]) =>
+          ? LABOR_PARTS.filter(([k]) => (k !== 'other' || +(doc.laborParts || {})[k]) && !laborHiddenMap(doc)[k]).map(([k, label]) =>
               '<div><span>' + esc(label) + '</span><span>' + esc(money(+(doc.laborParts || {})[k] || 0)) + '</span></div>'
             ).join('') +
             '<div class="sub"><span>إجمالي تكلفة العمل</span><span>' + esc(money(labor)) + '</span></div>'
           : '') +
         '<div class="grand"><span>' + (cfg.hasLabor ? 'إجمالي التكلفة' : 'الإجمالي الكلي') + '</span><span>' + esc(money(grand)) + '</span></div>' +
       '</div>' +
+      (cfg.hasLabor && Object.keys(LABOR_OPTIONAL).some(k => laborHiddenMap(doc)[k])
+        ? '<div class="meta" style="margin-top:14px;font-weight:700">العرض بدون: ' +
+            Object.keys(LABOR_OPTIONAL).filter(k => laborHiddenMap(doc)[k]).map(k => esc(LABOR_OPTIONAL[k])).join(' ، ') +
+          '</div>'
+        : '') +
       footer +
     '</div></body></html>';
 
@@ -7133,7 +7162,20 @@ function initEventDelegation(){
     if (el.dataset.laborPart && currentDraft) {
       if (!currentDraft.laborParts || typeof currentDraft.laborParts !== 'object') currentDraft.laborParts = {};
       currentDraft.laborParts[el.dataset.laborPart] = +el.value || 0;
-      currentDraft.labor = laborPartsSum(currentDraft.laborParts);
+      currentDraft.labor = laborPartsSum(currentDraft.laborParts, laborHiddenMap(currentDraft));
+      refreshDraftTotals();
+      return;
+    }
+
+    // «في العرض» للكابلات والتركيب: لو اتشالت، الرقم يفضل بس مايدخلش في العرض
+    if (el.dataset.laborShow && currentDraft) {
+      const k = el.dataset.laborShow;
+      const h = Object.assign({}, laborHiddenMap(currentDraft));
+      if (el.checked) delete h[k]; else h[k] = true;
+      currentDraft.laborHidden = h;
+      currentDraft.labor = laborPartsSum(currentDraft.laborParts, h);
+      const f = byId('dLaborField_' + k);
+      if (f) f.style.opacity = el.checked ? '' : '.55';
       refreshDraftTotals();
       return;
     }
