@@ -3133,11 +3133,17 @@ function renderDocList(kind){
         '<span class="amount">' + esc(money(docGrandTotal(kind, doc))) + '</span>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="doc-edit" data-kind="' + kind + '" data-id="' + escAttr(doc.id) + '">تعديل</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="doc-print" data-kind="' + kind + '" data-id="' + escAttr(doc.id) + '">📄 طباعة</button>' +
+        '<button type="button" class="btn btn-ghost btn-sm btn-wa" data-act="doc-whatsapp" data-kind="' + kind + '" data-id="' + escAttr(doc.id) + '" title="ابعت على واتساب">' + WA_ICON + ' واتساب</button>' +
         '<button type="button" class="btn btn-danger btn-sm" data-act="doc-delete" data-kind="' + kind + '" data-id="' + escAttr(doc.id) + '">حذف</button>' +
       '</div>' +
     '</div>';
   }).join('');
 }
+
+const WA_ICON =
+  '<svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" style="vertical-align:-3px">' +
+  '<path fill="#25D366" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/>' +
+  '<path fill="#fff" d="M17.2 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1l-.9 1.1c-.2.2-.3.2-.6.1a7.6 7.6 0 0 1-3.8-3.3c-.3-.5.3-.5.8-1.6.1-.2 0-.4 0-.5l-.9-2.1c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.3 5.2 4.6 1.9.8 2.7.9 3.6.7.6-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4z"/></svg>';
 
 function emptyState(icon, title, hint){
   return '<div class="empty">' +
@@ -3426,6 +3432,63 @@ Actions['doc-delete'] = async function(el){
 };
 
 Actions['doc-print'] = function(el){ printDoc(el.dataset.kind, el.dataset.id); };
+
+/* ---------- إرسال المستند على واتساب ----------
+   بيفتح واتساب ويب (أو التطبيق على الموبايل) والرسالة مكتوبة جاهزة:
+   لو العميل متسجل وليه رقم بيفتح الشات بتاعه على طول، غير كده
+   واتساب بيطلب منك تختار الشخص اللي هتبعتله. */
+function docWhatsappText(kind, doc){
+  const cfg = DOC_KINDS[kind];
+  const c = company();
+  const compTotal = itemsTotal(doc.items);
+  const out = [];
+  out.push('*' + cfg.label.replace(/^ال/, '') + (cfg.showCompany ? ' — ' + c.name : '') + '*');
+  if (cfg.hasNumber) out.push('رقم: ' + invoiceNumberLabel(doc.number));
+  out.push('العميل: ' + (doc.clientName || '-'));
+  if (doc.title) out.push('البيان: ' + doc.title);
+  if (doc.date)  out.push('التاريخ: ' + doc.date);
+  out.push('', '*البنود:*');
+  (doc.items || []).forEach((it, i) => {
+    const q = +it.qty || 0, p = +it.price || 0;
+    out.push((i + 1) + '. ' + (it.name || '-') + '\n    ' + fmt(q) + ' × ' + fmt(p) + ' = ' + money(q * p));
+  });
+  out.push('', 'إجمالي المكونات: ' + money(compTotal));
+  if (cfg.hasLabor) {
+    out.push('');
+    LABOR_PARTS.filter(([k]) => k !== 'other' || +(doc.laborParts || {})[k]).forEach(([k, label]) => {
+      out.push(label + ': ' + money(+(doc.laborParts || {})[k] || 0));
+    });
+    out.push('إجمالي تكلفة العمل: ' + money(+doc.labor || 0));
+  }
+  out.push('', '*' + (cfg.hasLabor ? 'إجمالي التكلفة' : 'الإجمالي الكلي') + ': ' + money(docGrandTotal(kind, doc)) + '*');
+  if (cfg.showCompany) out.push('', c.name + (c.phone ? ' — 📞 ' + c.phone : ''));
+  return out.join('\n');
+}
+
+function whatsappPhone(raw){
+  let d = String(raw || '').replace(/\D+/g, '');
+  if (!d) return '';
+  if (d.startsWith('00')) d = d.slice(2);
+  if (/^01\d{9}$/.test(d)) d = '2' + d;          // رقم مصري 01xxxxxxxxx
+  return d.length >= 10 ? d : '';
+}
+
+Actions['doc-whatsapp'] = function(el){
+  const kind = el.dataset.kind;
+  const doc = docList(kind).find(d => d.id === el.dataset.id);
+  if (!doc) { Toast.err('المستند غير موجود.'); return; }
+  const name = String(doc.clientName || '').trim();
+  const client = name ? (db.clients || []).find(cl => String(cl.name || '').trim() === name) : null;
+  const phone = whatsappPhone(client && client.phone);
+  const text = encodeURIComponent(docWhatsappText(kind, doc));
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const url = mobile
+    ? 'https://wa.me/' + phone + '?text=' + text
+    : 'https://web.whatsapp.com/send?' + (phone ? 'phone=' + phone + '&' : '') + 'text=' + text;
+  const w = window.open(url, 'whatsapp');
+  if (!w) location.href = url;
+  if (!phone) Toast.ok('اختار العميل في واتساب وابعت.');
+};
 
 Actions['doc-new'] = function(el){ openDocModal(el.dataset.kind, ''); };
 
