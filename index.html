@@ -3619,11 +3619,13 @@ const PDF_LIBS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
+/* اسم الملف بالإنجليزي بس: واتساب بيبوّظ الأسماء العربي (بتطلع رموز). */
 function docPdfName(kind, doc){
-  const cfg = DOC_KINDS[kind];
-  const label = cfg.label.replace(/^ال/, '').replace('السعر', 'سعر');
-  const name = [label, doc.clientName, doc.date].filter(Boolean).join(' - ');
-  return name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) + '.pdf';
+  const label = { quote: 'Quote', invoice: 'Invoice', extInvoice: 'Invoice' }[kind] || 'Document';
+  const latin = String(doc.clientName || '').replace(/[^A-Za-z0-9 ._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const num = DOC_KINDS[kind].hasNumber && doc.number ? String(invoiceNumberLabel(doc.number)).replace(/[^A-Za-z0-9-]+/g, '') : '';
+  const parts = ['SMART RUN', label, num, latin, doc.date || '', latin ? '' : String(doc.id || '').slice(-4).toUpperCase()];
+  return parts.filter(Boolean).join(' - ').replace(/\s+/g, ' ').slice(0, 100) + '.pdf';
 }
 
 function docPdfBlob(kind, doc){
