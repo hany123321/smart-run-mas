@@ -3444,9 +3444,11 @@ function whatsappPhone(raw){
 }
 
 /* الزرار بيبعت العرض كملف PDF (نفس شكل الطباعة):
-   - موبايل: قايمة المشاركة بتفتح وتختار واتساب والعميل، والملف متلزق.
-   - كمبيوتر: واتساب ويب مايسمحش لموقع يلزق ملف، فبننزّل الـ PDF ونفتح
-     شات العميل (أو قايمة الاختيار) وانت بتسحب الملف للشات. */
+   - لو الجهاز عنده قايمة مشاركة للملفات (موبايل، أو ويندوز في كروم/إيدج):
+     القايمة بتفتح وتختار WhatsApp (تطبيق واتساب على الكمبيوتر) والعميل،
+     والـ PDF بيتبعت هو نفسه.
+   - غير كده: واتساب ويب مايسمحش لموقع يلزق ملف، فبننزّل الـ PDF ونفتح
+     شات العميل وانت بتسحب الملف للشات. */
 Actions['doc-whatsapp'] = async function(el){
   const kind = el.dataset.kind;
   const doc = docList(kind).find(d => d.id === el.dataset.id);
@@ -3457,12 +3459,16 @@ Actions['doc-whatsapp'] = async function(el){
   const name = String(doc.clientName || '').trim();
   const client = name ? (db.clients || []).find(cl => String(cl.name || '').trim() === name) : null;
   const phone = whatsappPhone(client && client.phone);
-  const caption = cfg.label + (name ? ' — ' + name : '') + ' — ' +
-    (cfg.hasLabor ? 'إجمالي التكلفة' : 'الإجمالي') + ': ' + money(docGrandTotal(kind, doc));
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // قايمة المشاركة بتاعة الجهاز (ويندوز أو الموبايل) بتبعت الملف نفسه لواتساب
+  let canShareFiles = false;
+  try {
+    canShareFiles = !!(navigator.canShare &&
+      navigator.canShare({ files: [new File(['x'], 'x.pdf', { type: 'application/pdf' })] }));
+  } catch (e) { canShareFiles = false; }
 
-  // واتساب ويب لازم يتفتح دلوقتي (مع الضغطة) وإلا المتصفح يمنعه
-  const waWin = mobile ? null : window.open('about:blank', 'whatsapp');
+  // واتساب ويب (لو مفيش مشاركة) لازم يتفتح دلوقتي مع الضغطة وإلا المتصفح يمنعه
+  const waWin = (mobile || canShareFiles) ? null : window.open('about:blank', 'whatsapp');
 
   const oldHtml = el.innerHTML;
   el.dataset.busy = '1';
@@ -3483,29 +3489,47 @@ Actions['doc-whatsapp'] = async function(el){
   const fileName = docPdfName(kind, doc);
   const file = new File([blob], fileName, { type: 'application/pdf' });
 
-  if (mobile && navigator.canShare && navigator.canShare({ files: [file] })) {
-    // المشاركة محتاجة ضغطة جديدة بعد ما الملف جهز
-    Modal.open('ابعت على واتساب',
-      '<p class="muted" style="margin:0 0 14px">' + esc(fileName) + '</p>' +
-      '<div class="form-actions"><button type="button" class="btn btn-primary" id="waShareBtn">' + WA_ICON + ' ابعت PDF</button>' +
-      '<button type="button" class="btn btn-ghost" data-act="modal-close">قفل</button></div>');
-    const b = byId('waShareBtn');
-    if (b) b.addEventListener('click', () => {
-      navigator.share({ files: [file], text: caption })
-        .then(() => Modal.close())
-        .catch(err => { if (err && err.name !== 'AbortError') downloadBlob(blob, fileName); });
-    });
+  // الطريقة القديمة: ننزّل الملف ونفتح شات العميل في واتساب ويب
+  const viaWeb = (win) => {
+    downloadBlob(blob, fileName);
+    const url = mobile
+      ? 'https://wa.me/' + phone
+      : 'https://web.whatsapp.com/send' + (phone ? '?phone=' + phone : '');
+    if (win && !win.closed) win.location.href = url;
+    else window.open(url, 'whatsapp');
+    Toast.ok('الـ PDF اتنزل — ' + (phone ? '' : 'اختار العميل في واتساب، و') +
+             'اسحب الملف من التنزيلات للشات (أو 📎 ← مستند) وابعت.');
+  };
+
+  if (canShareFiles && navigator.canShare({ files: [file] })) {
+    // قايمة المشاركة: تختار واتساب ← العميل، والـ PDF بيتبعت هو نفسه
+    const share = () => navigator.share({ files: [file], title: fileName });
+    const ask = () => {
+      Modal.open('ابعت على واتساب',
+        '<p class="muted" style="margin:0 0 6px">' + esc(fileName) + '</p>' +
+        '<p class="muted" style="margin:0 0 14px;font-size:13px">هتفتح قايمة المشاركة: اختار <b>WhatsApp</b> وبعدين العميل.</p>' +
+        '<div class="form-actions"><button type="button" class="btn btn-primary" id="waShareBtn">' + WA_ICON + ' ابعت PDF</button>' +
+        '<button type="button" class="btn btn-ghost" id="waWebBtn">واتساب ويب بدل كده</button>' +
+        '<button type="button" class="btn btn-ghost" data-act="modal-close">قفل</button></div>');
+      const b = byId('waShareBtn');
+      if (b) b.addEventListener('click', () => {
+        share().then(() => Modal.close()).catch(err => {
+          if (err && err.name !== 'AbortError') { Modal.close(); viaWeb(null); }
+        });
+      });
+      const wb = byId('waWebBtn');
+      if (wb) wb.addEventListener('click', () => { Modal.close(); viaWeb(null); });
+    };
+    try {
+      await share();                         // على طول لو الضغطة لسه صالحة
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;   // قفلت القايمة بنفسك
+      ask();                                 // محتاجين ضغطة تانية
+    }
     return;
   }
 
-  downloadBlob(blob, fileName);
-  const url = mobile
-    ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(caption)
-    : 'https://web.whatsapp.com/send?' + (phone ? 'phone=' + phone + '&' : '') + 'text=' + encodeURIComponent(caption);
-  if (waWin && !waWin.closed) waWin.location.href = url;
-  else window.open(url, 'whatsapp');
-  Toast.ok('الـ PDF اتنزل — ' + (phone ? '' : 'اختار العميل في واتساب، و') +
-           'اسحب الملف من التنزيلات للشات (أو 📎 ← مستند) وابعت.');
+  viaWeb(waWin);
 };
 
 Actions['doc-new'] = function(el){ openDocModal(el.dataset.kind, ''); };
