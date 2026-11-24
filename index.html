@@ -3434,37 +3434,7 @@ Actions['doc-delete'] = async function(el){
 Actions['doc-print'] = function(el){ printDoc(el.dataset.kind, el.dataset.id); };
 
 /* ---------- إرسال المستند على واتساب ----------
-   بيفتح واتساب ويب (أو التطبيق على الموبايل) والرسالة مكتوبة جاهزة:
-   لو العميل متسجل وليه رقم بيفتح الشات بتاعه على طول، غير كده
-   واتساب بيطلب منك تختار الشخص اللي هتبعتله. */
-function docWhatsappText(kind, doc){
-  const cfg = DOC_KINDS[kind];
-  const c = company();
-  const compTotal = itemsTotal(doc.items);
-  const out = [];
-  out.push('*' + cfg.label.replace(/^ال/, '') + (cfg.showCompany ? ' — ' + c.name : '') + '*');
-  if (cfg.hasNumber) out.push('رقم: ' + invoiceNumberLabel(doc.number));
-  out.push('العميل: ' + (doc.clientName || '-'));
-  if (doc.title) out.push('البيان: ' + doc.title);
-  if (doc.date)  out.push('التاريخ: ' + doc.date);
-  out.push('', '*البنود:*');
-  (doc.items || []).forEach((it, i) => {
-    const q = +it.qty || 0, p = +it.price || 0;
-    out.push((i + 1) + '. ' + (it.name || '-') + '\n    ' + fmt(q) + ' × ' + fmt(p) + ' = ' + money(q * p));
-  });
-  out.push('', 'إجمالي المكونات: ' + money(compTotal));
-  if (cfg.hasLabor) {
-    out.push('');
-    LABOR_PARTS.filter(([k]) => k !== 'other' || +(doc.laborParts || {})[k]).forEach(([k, label]) => {
-      out.push(label + ': ' + money(+(doc.laborParts || {})[k] || 0));
-    });
-    out.push('إجمالي تكلفة العمل: ' + money(+doc.labor || 0));
-  }
-  out.push('', '*' + (cfg.hasLabor ? 'إجمالي التكلفة' : 'الإجمالي الكلي') + ': ' + money(docGrandTotal(kind, doc)) + '*');
-  if (cfg.showCompany) out.push('', c.name + (c.phone ? ' — 📞 ' + c.phone : ''));
-  return out.join('\n');
-}
-
+   رقم العميل (لو متسجل في العملاء) بصيغة واتساب الدولية. */
 function whatsappPhone(raw){
   let d = String(raw || '').replace(/\D+/g, '');
   if (!d) return '';
@@ -3473,21 +3443,69 @@ function whatsappPhone(raw){
   return d.length >= 10 ? d : '';
 }
 
-Actions['doc-whatsapp'] = function(el){
+/* الزرار بيبعت العرض كملف PDF (نفس شكل الطباعة):
+   - موبايل: قايمة المشاركة بتفتح وتختار واتساب والعميل، والملف متلزق.
+   - كمبيوتر: واتساب ويب مايسمحش لموقع يلزق ملف، فبننزّل الـ PDF ونفتح
+     شات العميل (أو قايمة الاختيار) وانت بتسحب الملف للشات. */
+Actions['doc-whatsapp'] = async function(el){
   const kind = el.dataset.kind;
   const doc = docList(kind).find(d => d.id === el.dataset.id);
   if (!doc) { Toast.err('المستند غير موجود.'); return; }
+  if (el.dataset.busy) return;
+
+  const cfg = DOC_KINDS[kind];
   const name = String(doc.clientName || '').trim();
   const client = name ? (db.clients || []).find(cl => String(cl.name || '').trim() === name) : null;
   const phone = whatsappPhone(client && client.phone);
-  const text = encodeURIComponent(docWhatsappText(kind, doc));
+  const caption = cfg.label + (name ? ' — ' + name : '') + ' — ' +
+    (cfg.hasLabor ? 'إجمالي التكلفة' : 'الإجمالي') + ': ' + money(docGrandTotal(kind, doc));
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  // واتساب ويب لازم يتفتح دلوقتي (مع الضغطة) وإلا المتصفح يمنعه
+  const waWin = mobile ? null : window.open('about:blank', 'whatsapp');
+
+  const oldHtml = el.innerHTML;
+  el.dataset.busy = '1';
+  el.disabled = true;
+  el.textContent = 'بيجهز PDF…';
+  let blob;
+  try {
+    blob = await docPdfBlob(kind, doc);
+  } catch (e) {
+    console.error('PDF error', e);
+    if (waWin) waWin.close();
+    Toast.err('ماقدرتش أعمل ملف PDF — اتأكد من النت وجرّب تاني.');
+    return;
+  } finally {
+    el.innerHTML = oldHtml; el.disabled = false; delete el.dataset.busy;
+  }
+
+  const fileName = docPdfName(kind, doc);
+  const file = new File([blob], fileName, { type: 'application/pdf' });
+
+  if (mobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+    // المشاركة محتاجة ضغطة جديدة بعد ما الملف جهز
+    Modal.open('ابعت على واتساب',
+      '<p class="muted" style="margin:0 0 14px">' + esc(fileName) + '</p>' +
+      '<div class="form-actions"><button type="button" class="btn btn-primary" id="waShareBtn">' + WA_ICON + ' ابعت PDF</button>' +
+      '<button type="button" class="btn btn-ghost" data-act="modal-close">قفل</button></div>');
+    const b = byId('waShareBtn');
+    if (b) b.addEventListener('click', () => {
+      navigator.share({ files: [file], text: caption })
+        .then(() => Modal.close())
+        .catch(err => { if (err && err.name !== 'AbortError') downloadBlob(blob, fileName); });
+    });
+    return;
+  }
+
+  downloadBlob(blob, fileName);
   const url = mobile
-    ? 'https://wa.me/' + phone + '?text=' + text
-    : 'https://web.whatsapp.com/send?' + (phone ? 'phone=' + phone + '&' : '') + 'text=' + text;
-  const w = window.open(url, 'whatsapp');
-  if (!w) location.href = url;
-  if (!phone) Toast.ok('اختار العميل في واتساب وابعت.');
+    ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(caption)
+    : 'https://web.whatsapp.com/send?' + (phone ? 'phone=' + phone + '&' : '') + 'text=' + encodeURIComponent(caption);
+  if (waWin && !waWin.closed) waWin.location.href = url;
+  else window.open(url, 'whatsapp');
+  Toast.ok('الـ PDF اتنزل — ' + (phone ? '' : 'اختار العميل في واتساب، و') +
+           'اسحب الملف من التنزيلات للشات (أو 📎 ← مستند) وابعت.');
 };
 
 Actions['doc-new'] = function(el){ openDocModal(el.dataset.kind, ''); };
@@ -3495,10 +3513,10 @@ Actions['doc-new'] = function(el){ openDocModal(el.dataset.kind, ''); };
 /* ============================================================
    طباعة المستندات
    ============================================================ */
-function printDoc(kind, docId){
+function printDoc(kind, docId, asHtml){
   const cfg = DOC_KINDS[kind];
   const doc = docList(kind).find(d => d.id === docId);
-  if (!doc) { Toast.err('المستند غير موجود.'); return; }
+  if (!doc) { Toast.err('المستند غير موجود.'); return ''; }
 
   const c = company();
   const accent = cfg.hasColor ? (doc.color || PROJECT_COLORS[0]) : '#d58a45';
@@ -3565,7 +3583,99 @@ function printDoc(kind, docId){
       footer +
     '</div></body></html>';
 
+  if (asHtml) return html;
   openPrintWindow(html, cfg.label);
+}
+
+/* ---------- المستند كملف PDF (نفس شكل الطباعة) ----------
+   بنرسم صفحة الطباعة في إطار مخفي ونحوّلها PDF بمكتبة html2pdf جوه
+   الإطار نفسه، عشان ستايل الطباعة مايأثرش على البرنامج. */
+const PDF_LIBS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+];
+
+function docPdfName(kind, doc){
+  const cfg = DOC_KINDS[kind];
+  const label = cfg.label.replace(/^ال/, '').replace('السعر', 'سعر');
+  const name = [label, doc.clientName, doc.date].filter(Boolean).join(' - ');
+  return name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) + '.pdf';
+}
+
+function docPdfBlob(kind, doc){
+  const html = printDoc(kind, doc.id, true);
+  if (!html) return Promise.reject(new Error('no-doc'));
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;background:#fff';
+    document.body.appendChild(frame);
+    const done = (fn, v) => { clearTimeout(timer); setTimeout(() => frame.remove(), 0); fn(v); };
+    const timer = setTimeout(() => done(reject, new Error('pdf-timeout')), 30000);
+    const d = frame.contentDocument;
+    d.open();
+    // للـ PDF بس: هامش جانبي عشان الحافة ماتتقصش، والمبالغ في سطر واحد
+    const pdfCss = '<style>html,body{overflow:hidden!important}' +
+      'body{padding:0 18px!important;box-sizing:border-box}' +
+      '.totals span:last-child,td.amount{white-space:nowrap}</style>';
+    d.write(html.replace('</head>', pdfCss + '</head>')
+                .replace('</body>', PDF_LIBS.map(u => '<script src="' + u + '"><\/script>').join('') + '</body>'));
+    d.close();
+    const w = frame.contentWindow;
+    const start = () => {
+      if (!w.html2canvas || !w.jspdf) { setTimeout(start, 150); return; }
+      const imgs = Array.from(d.images).filter(i => !i.complete);
+      Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; })))
+        .then(() => {
+          const el = d.body, root = d.documentElement;
+          // الإعدادات بتتعمل جوه الإطار (المكتبة بتشيك الأنواع من عالمها هي).
+          // المتصفح نفسه هو اللي يرسم الصفحة (foreignObject) عشان الحروف
+          // العربي تفضل متوصلة والأرقام في مكانها.
+          return w.html2canvas(el, w.JSON.parse(JSON.stringify({
+            scale: 2, useCORS: true, backgroundColor: '#ffffff', foreignObjectRendering: true,
+            windowWidth: 794, scrollX: 0, scrollY: 0, x: 0, y: 0,
+            width: Math.ceil(root.scrollWidth), height: Math.ceil(root.scrollHeight)
+          })));
+        })
+        .then(canvas => {
+          const pdf = new w.jspdf.jsPDF(w.JSON.parse('{"unit":"mm","format":"a4","orientation":"portrait"}'));
+          const M = 8, pageW = 210 - 2 * M, pageH = 297 - 2 * M;
+          const pxPerMm = canvas.width / pageW;
+          const slice = Math.floor(pageH * pxPerMm);
+          // الصفحة بتتقطع بين الصفوف مش في نص صف
+          const s = canvas.width / d.documentElement.scrollWidth;
+          const breaks = Array.from(d.querySelectorAll('tr, .totals > div, .meta, .title-row, .header'))
+            .map(e => Math.floor(e.getBoundingClientRect().bottom * s)).sort((a, b) => a - b);
+          for (let y = 0, first = true; y < canvas.height; first = false) {
+            let h = Math.min(slice, canvas.height - y);
+            if (y + h < canvas.height) {
+              const fit = breaks.filter(b => b > y + slice * 0.5 && b <= y + slice).pop();
+              if (fit) h = fit - y;
+            }
+            const part = d.createElement('canvas');
+            part.width = canvas.width; part.height = h;
+            const g = part.getContext('2d');
+            g.fillStyle = '#fff'; g.fillRect(0, 0, part.width, h);
+            g.drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+            if (!first) pdf.addPage();
+            pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, M, pageW, h / pxPerMm);
+            y += h;
+          }
+          return pdf.output('blob');
+        })
+        .then(blob => done(resolve, blob))
+        .catch(err => done(reject, err));
+    };
+    start();
+  });
+}
+
+function downloadBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /* ============================================================
