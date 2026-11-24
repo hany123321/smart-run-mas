@@ -3181,7 +3181,12 @@ function docModalBody(kind){
 
   '<div class="panel-head" style="margin-top:18px">' +
     '<h3>البنود</h3>' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+    '<label class="dp-disc" for="dDeltaDisc">خصم دلتا %' +
+    '<input id="dDeltaDisc" type="number" min="0" max="99" step="any" value="' +
+      (typeof DeltaPrices !== 'undefined' ? DeltaPrices.discount() : 20) + '"></label>' +
     '<button type="button" class="btn btn-ghost btn-sm" data-act="draft-row-add">+ إضافة بند</button>' +
+    '</div>' +
   '</div>' +
   '<div class="table-wrap"><table>' +
     '<caption class="sr-only">بنود ' + esc(cfg.label) + '</caption>' +
@@ -3227,7 +3232,7 @@ function draftRowsHtml(){
   return currentDraft.items.map((it, idx) =>
     '<tr>' +
       '<td class="muted">' + (idx + 1) + '</td>' +
-      '<td><input value="' + escAttr(it.name) + '" data-row="' + idx + '" data-row-field="name" placeholder="اسم المكون" aria-label="اسم المكون ' + (idx+1) + '"></td>' +
+      '<td><input value="' + escAttr(it.name) + '" data-row="' + idx + '" data-row-field="name" autocomplete="off" placeholder="اسم المكون — اكتب موديل دلتا" aria-label="اسم المكون ' + (idx+1) + '"></td>' +
       '<td><input type="number" min="0" step="any" value="' + esc(it.qty) + '" data-row="' + idx + '" data-row-field="qty" aria-label="العدد"></td>' +
       '<td><input type="number" min="0" step="any" value="' + esc(it.price) + '" data-row="' + idx + '" data-row-field="price" aria-label="سعر الوحدة"></td>' +
       '<td class="amount" id="dRowTotal' + idx + '">' + esc(fmt((+it.qty || 0) * (+it.price || 0))) + '</td>' +
@@ -7033,5 +7038,229 @@ if (document.readyState === 'loading') {
 }
 
 </script>
+<!-- DELTA-PRICES:START -->
+<style>
+.dp-box{position:fixed;z-index:10050;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.35);max-height:320px;overflow:auto;
+  min-width:320px;padding:4px;direction:rtl}
+.dp-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;
+  border-radius:8px;cursor:pointer}
+.dp-opt[aria-selected="true"],.dp-opt:hover{background:var(--accent-tint)}
+.dp-main{min-width:0}
+.dp-model{font-weight:700;color:var(--text);direction:ltr;unicode-bidi:isolate}
+.dp-desc{font-size:12px;color:var(--muted);direction:ltr;text-align:right;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:380px}
+.dp-price{text-align:left;white-space:nowrap;flex-shrink:0}
+.dp-net{font-weight:700;color:var(--accent-hi)}
+.dp-list{font-size:11.5px;color:var(--muted-2);text-decoration:line-through}
+.dp-head{font-size:11.5px;color:var(--muted);padding:6px 10px 4px}
+.dp-disc{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.dp-disc input{width:64px;padding:4px 6px}
+</style>
+<script>
+'use strict';
+/* ============================================================
+   أسعار دلتا (ستار جروب) — بحث في «اسم المكون» بسعر بعد الخصم
+   ------------------------------------------------------------
+   الجدول جاي من ملف الإكسل بتاع الأسعار؛ كل صنف: [الموديل، الوصف،
+   سعر القايمة، النوع]. لما تكتب في اسم المكون (مثلاً: plc se 12)
+   بتطلع قايمة، وتختار منها فيتكتب الاسم وسعر الوحدة بعد الخصم.
+   ============================================================ */
+const DELTA_PRICES_DATE = "1-4-2026";
+const DELTA_PRICES = [["VFD007EL21W-1","1HP 0.75KW Delta inverter ,0.75kW, 4.2A,I/P 200V-240V 1 Phase +/-10% at 50-60Hz (47-63Hz),O/P 230V 3PH, IP20",6037.89,"vfd","VFD-ELW"],["VFD015EL21W-1","2HP 1.5KW Delta inverter, 1.5kW, 7.5A,I/P 200V-240V 1 Ph +/-10% at 50-60Hz (47-63Hz),O/P 230V 3PH, IP20",7486.32,"vfd","VFD-ELW"],["VFD022EL21W-1","3HP 2.2KW Delta inverter, 2.2kW, 11A,I/P 200V-240V 1 Ph +/-10% at 50-60Hz (47-63Hz),O/P 230V 3PH, IP20",9608.42,"vfd","VFD-ELW"],["VFD007EL43W-1","1hp 0.75 Delta inverter ,0.75kW, 2.5A, I/P 380V-480V 3 Phase +/-10% at 50-60Hz (47-63Hz),O/P 400V 3PH, IP20",8500.0,"vfd","VFD-ELW"],["VFD015EL43W-1","2HP 1.5KW Delta inverter ,1.5kW, 4.2A, I/P 380V-480V 3 Phase +/-10% at 50-60Hz (47-63Hz),O/P 400V 3PH, IP20",9560.0,"vfd","VFD-ELW"],["VFD022EL43W-1","3HP 2.2KW Delta inverter , 2.2kW, 5.5A, I/P 380V-480V 3 Phase +/-10% at 50-60Hz (47-63Hz),O/P 400V 3PH, IP20",11300.0,"vfd","VFD-ELW"],["VFD040EL43W-1","5HP 3.7KW Delta inverter , 4kW, 9A, I/P 380V-480V 3 Phase +/-10% at 50-60Hz (47-63Hz),O/P 400V 3PH, IP20",13187.37,"vfd","VFD-ELW"],["VFD055EL43W-1","7.5HP 5.5KW Delta inverter , 5.5kW, 11A, I/P 380V-480V 3 Phase +/-10% at 50-60Hz (47-63Hz),O/P 400V 3PH, IP20",16000.0,"vfd","VFD-ELW"],["VFD-PU08","ELW KEYPAD",1000.0,"vfd","VFD-ELW"],["VFD007EL21A","1HP 0.75KW Delta inverter, 0.75KW, 5A, I/P 230V 1 PH ,60Hz ,O/P 230V 3PH, IP20",7006.32,"vfd","VFD-EL"],["VFD015EL21A","2HP 1.5KW Delta inverter, 1.5KW, 7.5A, I/P 230V 1 PH ,60Hz ,O/P 230V 3PH, IP20",8235.79,"vfd","VFD-EL"],["VFD022EL21A","3HP 2.2KW Delta inverter, 2.2KW, 11A, I/P 230V 1 PH ,60Hz ,O/P 230V 3PH, IP20",10568.42,"vfd","VFD-EL"],["VFD037EL23A","5HP 3.7KW Delta inverter, 3.7KW, 17A,I/P 230V 3 PH ,60Hz ,O/P 230V 3PH, IP20",15233.68,"vfd","VFD-EL"],["VFD007EL43A","1hp 0.75 Delta inverter, 0.75KW, 2.5A, I/P 460V 3 PH ,60Hz ,O/P 460V 3PH, IP20",9300.0,"vfd","VFD-EL"],["VFD015EL43A","2HP 1.5KW Delta inverter, 1.5KW, 4,2A, I/P 460V 3 PH ,60Hz ,O/P 460V 3PH, IP20",10500.0,"vfd","VFD-EL"],["VFD022EL43A","3HP 2.2KW Delta inverter, 2.2KW, 5.5A, I/P 460V 3 PH ,60Hz ,O/P 460V 3PH, IP20",12500.0,"vfd","VFD-EL"],["VFD037EL43A","5HP 3.7KW Delta inverter, 3,7KW, 8.2A, I/P 460V 3 PH ,60Hz ,O/P 460V 3PH, IP20",14509.47,"vfd","VFD-EL"],["VFD4A8MS21ANSAA","1HP 0.75KW 0.75kW, 4.8A,220V+15%, 50HZ/60HZ,0-320HZ",9000.0,"vfd","MS300"],["VFD7A5MS21ANSAA","2HP 1.5KW 1.5kW, 7.5A, 220V+15%, 50HZ/60HZ,0-320HZ",10800.0,"vfd","MS300"],["VFD11AMS21ANSAA","3HP 2.2KW 2.2kW, 11A,220V+15%, 50HZ/60HZ,0-320HZ",14000.0,"vfd","MS300"],["VFD17AMS23ANSAA","5HP 3.7KW 3.7kW, 17A,220V+15%, 50HZ/60HZ,0-320HZ",17296.84,"vfd","MS300"],["VFD25AMS23ANSAA","7.5HP 5.5KW 5.5kW, 25A, 220V+15%, 50HZ/60HZ",23747.37,"vfd","MS300"],["VFD33AMS23ANSAA","10HP 7.5 KW 7.5kW, 33A, 220V+15%, 50HZ/60HZ",26720.0,"vfd","MS300"],["VFD49AMS23ANSAA","15HP 11KW 11kW,49A, 220V+15%, 50HZ/60HZ",37000.0,"vfd","MS300"],["VFD65AMS23ANSAA","20HP 15KW 15kW,65A, 220V+15%, 50HZ/60HZ",43500.0,"vfd","MS300"],["VFD2A7MS43ANSAA","1HP 0.75KW 0.75kW,2.7A, 3 phase, 380V+15%, 50HZ/60HZ",10821.05,"vfd","MS300"],["VFD4A2MS43ANSAA","2HP 1.5KW 1.5kW,4.2A, 3 phase, 380V+15%, 50HZ/60HZ",12050.53,"vfd","MS300"],["VFD5A5MS43ANSAA","3HP 2.2KW 2.2kW,5.5A, 3 phase, 380V+15%, 50HZ/60HZ",13800.0,"vfd","MS300"],["VFD9A0MS43ANSAA","5HP 3.7KW 3.7kW,9A, 3 phase, 380V+15%, 50HZ/60HZ",16471.58,"vfd","MS300"],["VFD13AMS43ANSAA","7.5hp 5.5kw 5.5kW,13A, 3 phase, 380V+15%, 50HZ/60HZ",22618.95,"vfd","MS300"],["VFD17AMS43ANSAA","10HP 7.5KW 7.5kW,17A, 3 phase, 380V+15%, 50HZ/60HZ",25448.42,"vfd","MS300"],["VFD25AMS43ANSAA","15HP 11KW 11kW,25A, 3 phase, 380V+15%, 50HZ/60HZ",33456.84,"vfd","MS300"],["VFD32AMS43ANSAA","20HP 15KW 15kW,32A, 3 phase, 380V+15%, 50HZ/60HZ",40513.68,"vfd","MS300"],["VFD38AMS43ANSAA","25HP 18.5KW 18.5kW,38A, 3 phase, 380V+15%, 50HZ/60HZ",50400.0,"vfd","MS300"],["VFD45AMS43ANSAA","30HP 22KW 22kW,45A, 3 phase, 380V+15%, 50HZ/60HZ",55637.89,"vfd","MS300"],["EG3010C","keypad<->inverter extend cable 3M",808.42,"vfd","MS300"],["EG5010C","keypad<->inverter extend cable 5M",1010.53,"vfd","MS300"],["IFD6500","(VFD-USB01) USB-RS485 communicaon module",3000.0,"vfd","MS300"],["VFD075C23A","10HP 7.5KW 7.5kW, 33A,3-phase AC 200V~240V (-15% ~ +10%), 50/60Hz",38349.47,"vfd","C2000"],["VFD110C23A","15HP 11KW 11kW, 49A,3-phase AC 200V~240V (-15% ~ +10%), 50/60Hz",45726.32,"vfd","C2000"],["VFD150C23A","20HP 15KW 15kW, 65A,3-phase AC 200V~240V (-15% ~ +10%), 50/60Hz",63915.79,"vfd","C2000"],["VFD007C43A","1HP 0.75KW 0.75kW,3A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",18635.79,"vfd","C2000"],["VFD015C43A","2HP 1.5KW 1.5kW,4A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",20042.11,"vfd","C2000"],["VFD022C43A","3HP 2.2KW 2.2kW,6A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",21877.89,"vfd","C2000"],["VFD037C43A","5HP 3.7KW 3.7kW,9A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",25692.63,"vfd","C2000"],["VFD055C43A","7.5HP 5.5KW 5.5kW,12A ,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",28151.58,"vfd","C2000"],["VFD075C43A","10HP 7.5KW 7.5kW,18A ,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",30425.26,"vfd","C2000"],["VFD110C43A","15HP 11KW 11kW, 24A ,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",35402.11,"vfd","C2000"],["VFD150C43A","20HP 15KW 15kW, 32A ,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",44084.21,"vfd","C2000"],["VFD185C43A","25HP 18.5KW 18.5kW, 38A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",54088.42,"vfd","C2000"],["VFD220C43A","30HP 22KW 22kW, 45A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",61953.68,"vfd","C2000"],["VFD300C43A","40HP 30KW 30kW, 60A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",77684.21,"vfd","C2000"],["VFD370C43S","50HP 37KW 37kW, 73A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",86046.32,"vfd","C2000"],["VFD450C43S","60HP 45KW 45kW, 91A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",97355.79,"vfd","C2000"],["VFD550C43A","75HP 55KW 55kW, 110A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",116286.32,"vfd","C2000"],["VFD750C43A","100HP 75KW 75kW, 150A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",158568.42,"vfd","C2000"],["VFD900C43A","125HP 90KW 90kW, 180A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",208968.42,"vfd","C2000"],["VFD1100C43A","150HP 110KW 110kW, 220A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",247882.11,"vfd","C2000"],["VFD1320C43A","175HP 132KW 132kW, 260A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",288614.74,"vfd","C2000"],["VFD1600C43A","215HP 160KW 160kW, 310A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",331890.53,"vfd","C2000"],["VFD2200C43A","300HP 220KW 220kW, 460A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",529296.84,"vfd","C2000"],["VFD2800C43A","375HP 280KW 280kW, 550A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",721296.84,"vfd","C2000"],["VFD3150C43A","420HP 315KW 315kW, 616A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",928075.79,"vfd","C2000"],["VFD3550C43A","475HP 355KW 355kW, 683A,3-Phase AC 380V~480V ( -15%~+10%), 50/60Hz",952631.58,"vfd","C2000"],["EMC-PG01L","PG card, Line-drive (A,B,Z) 300k pulse/sec",4547.37,"vfd","C2000"],["EMC-PG01O","PG card,Open-collect 300k pulse/sec",4210.53,"vfd","C2000"],["EMC-PG01R","PG card, resolver output 7Vrms, resolver input 3.5Vrms",5052.63,"vfd","C2000"],["KPC-CC01","VFD-C2000 keypad",4210.53,"vfd","C2000"],["VFDB4030","Braking unit up to 30 KW",12606.32,"vfd","C2000"],["VFDB4045","Braking unit up to 45 KW",14517.89,"vfd","C2000"],["EMC-COP01","CANopen Communication Card",2600.0,"vfd","C2000"],["CMC-EC01","EtherCAT Communication Card",10380.0,"vfd","C2000"],["CMC-PD01","PROFIBUS DP Communication Card",11400.0,"vfd","C2000"],["CMC-EIP01","EtherNet/IP, Modbus TCP Communication Card",3500.0,"vfd","C2000"],["ASD-A2-0421-M","AC Servo Drive 220V, 400W, 2.6A",20732.63,"servo","SERVO A2"],["ECMA-C20604RS","AC Servo Motor 220V 400W AC Servo Motor 1.27NM 2.6A 60mm 3000RPM with Keyway Oil Seal",12303.0,"servo","SERVO A2"],["ASD-ABPW0003","POWER CABLE 3M",1869.47,"servo","SERVO A2"],["ASD-ABEN0003","ENCODER CABLE 3M",2080.0,"servo","SERVO A2"],["ASD-CNSC0050","50 PIN CONNECTOR ''A'' SERVO",858.95,"servo","SERVO A2"],["ECMA-C20604SS","AC Servo Motor 220V 400W 1.27NM 3000rpm , with Brake",21112.0,"servo","SERVO A2"],["ASD-ABPW0103","Cable, Power, 3 meter, with Brake",2686.32,"servo","SERVO A2"],["ASD-A2-0721-M","AC servo Drive 1ph 220V 750w , 5.1A",23023.16,"servo","SERVO A2"],["ECMA-C20807RS","AC Servo Motor 220V 750W 2.39NM 3000rpm with Keyway Oil Seal",13515.79,"servo","SERVO A2"],["ECMA-C20807SS","AC Servo Motor 220V 750W 2.39NM 3000rpm with Keyway Oil Seal brake",22307.37,"servo","SERVO A2"],["ASD-A2-1021-M","AC Servo Drive 1ph 220V 1KW , 7.3A",23688.42,"servo","SERVO A2"],["ECMA-E21310RS","AC Servo Motor 220V 1KW 4.77NM 2000rpm",21515.79,"servo","SERVO A2"],["ASD-CAPW1003","Cable, Power, 5 meter",3444.21,"servo","SERVO A2"],["ASD-CAEN1003","ENCODER CABLE 5M",3671.58,"servo","SERVO A2"],["ECMA-E21310SS","AC Servo Motor 220V 1KW 4.77NM 2000rpm ,with Brake",34054.74,"servo","SERVO A2"],["ASD-CAPW1103","Cable, Power, 3 meter, with Brake",3671.58,"servo","SERVO A2"],["ASD-A2-1521-M","AC Servo Drive 1ph 220V 1.5KW 8.3A",28000.0,"servo","SERVO A2"],["ECMA-E21315RS","AC Servo Motor 1.5kw 1500w 220V 7.16NM 8.3A 2000r/min with Keyway Oil Seal",25000.0,"servo","SERVO A2"],["ECMA-E21315SS","AC Servo Motor 1.5kw 1500w 220V 7.16NM 8.3A 2000r/min with Keyway Oil Seal with brake",37434.0,"servo","SERVO A2"],["ASD-A2-2043-M","AC Servo Drive 3ph 400V ,2kw , 6.66 A E-CAM canopen",44640.0,"servo","SERVO A2"],["ECMA-K11320RS","AC Servo Motor, 2kW, 480VAC , 2,000 RPM ,9.55 NM ,Keyway Oil",30770.83,"servo","SERVO A2"],["ASD-CAPW1203","Cable, Power, 3 meter",4395.79,"servo","SERVO A2"],["ECMA-K11320SS","AC Servo Motor, 2kW, 480VAC , 2,000 RPM ,9.55 NM ,Keyway Oil Seal with brake",44698.95,"servo","SERVO A2"],["ASD-CAPW1303","Cable, Power, 3 meter, with Brake",5313.68,"servo","SERVO A2"],["ASD-A2-3043-M","AC Servo Drive 3kw, 3ph, 400V , 11.9A E-CAM canop",53709.47,"servo","SERVO A2"],["ECMA-L11830RS","AC Servo Motor 400V, 3KW 19.1NM ,1500r/min ,180mm",47503.16,"servo","SERVO A2"],["ASD-CAPW2203","Cable, Power, 3 meter",5482.11,"servo","SERVO A2"],["ECMA-L11830SS","AC Servo Motor 400V, 3KW 19.1NM ,1500r/min ,180mm ,with Brake",60804.04,"servo","SERVO A2"],["ASD-CAPW2303","Cable, Power, 3 meter, with Brake",7017.09,"servo","SERVO A2"],["ASD-A2-4543-M","AC Servo Drive 400V, 4.5KW ,20.8A",55166.0,"servo","SERVO A2"],["ECMA-LA1845RS","AC Servo Motor 400V, 4.5KW 28.65NM ,1500r/min,180mm ,Keyway",59872.0,"servo","SERVO A2"],["ECMA-LA1845SS","AC Servo Motor 400V, 4.5KW 28.65NM ,1500r/min,180mm ,with Brake",75000.0,"servo","SERVO A2"],["ASD-A2-5543-M","AC Servo Drive 400V, 5.5KW ,22.37A",77818.95,"servo","SERVO A2"],["ECMA-L11855R3","AC Servo Motor 400V, 5.5KW 35NM ,1500r/min",79200.0,"servo","SERVO A2"],["ECMA-L11855S3","AC Servo Motor 400V, 5.5KW 35NM ,1500r/min ,180mm ,with Brake",93018.95,"servo","SERVO A2"],["ASD-A2-7543-M","AC Servo Drive 400V, 7.5KW ,28.39A",106217.0,"servo","SERVO A2"],["ECMA-L11875R3","AC Servo Motor 400V, 7.5KW 47.74NM ,1500r/min ,180mm Keyway",99890.53,"servo","SERVO A2"],["ASD-CAPW3205","Cable, Power, 5 meter",7383.0,"servo","SERVO A2"],["ECMA-L11875S3","AC Servo Motor 400V, 7.5KW 47.74NM ,1500r/min ,180mm with brake",113100.0,"servo","SERVO A2"],["ASD-CAPW3305","Cable, Power, 5 meter",8000.0,"servo","SERVO A2"],["ECMA-C10604RS","AC Servo Motor 220V 400W, 1.27NM 60mm 3000RPM with Keyway Oil Seal",14315.79,"servo","SERVO A2"],["ECMA-C21010RS","AC Servo Motor 220V 1KW, 3.18NM, 100mm 3000RPM with Keyway Oil Seal",22108.63,"servo","SERVO A2"],["ECMA-C10810RS","AC Servo Motor 220V 1KW, 3.18NM 80mm 3000RPM with Keyway Oil Seal",23469.47,"servo","SERVO A2"],["ECMA-E21305RS","",22492.63,"servo","SERVO A2"],["ECMA-C10910SS","",36058.95,"servo","SERVO A2"],["ECMA-C10807RS","AC Servo Motor 220V 750W 2.39NM 3000rpm with Keyway Oil Seal",15621.05,"servo","SERVO A2"],["ASD-IF-SC5020","EASY CONNECTOR",1750.0,"servo","SERVO A2"],["ASD-B2-0421-B","AC Servo Drive 220V, 400W, 2.6A",17600.43,"servo","SERVO B2"],["ASDBCAPW0203","POWER CABLE 3M",1100.0,"servo","SERVO B2"],["ASDBCAEN0003","ENCODER CABLE 3M",1566.31,"servo","SERVO B2"],["ASDBCAPW0303","Cable, Power, 3 meter, with Brake",2458.95,"servo","SERVO B2"],["ASD-B2-0721-B","AC servo Drive 1ph 220V 750w , 5.1A",20227.37,"servo","SERVO B2"],["ASD-B2-1021-B","AC Servo Drive 1ph 220V 1KW , 7.3A",21793.0,"servo","SERVO B2"],["ASDBCAPW1203","Cable, Power, 3 meter",4000.0,"servo","SERVO B2"],["ASDBCAEN1003","ENCODER CABLE 3M",3671.58,"servo","SERVO B2"],["ASDBCAPW1303","Cable, Power, 3 meter, with Brake",5000.0,"servo","SERVO B2"],["ASD-B2-1521-B","AC Servo Drive 1ph 220V 1.5KW 8.3A",23758.0,"servo","SERVO B2"],["ASD-B2-2023-B","AC Servo Drive 2kw , 6.66 A E-CAM canopen",38277.0,"servo","SERVO B2"],["ECMA-E21320RS","AC Servo Motor, 2kW, 220VAC , 2000 RPM ,9.55 NM ,Keyway Oil",32771.0,"servo","SERVO B2"],["ECMA-E21820QS","AC Servo Motor, 2kW, 220VAC , 2000 RPM ,9.55 NM ,Keyway Oil Seal with brake",46699.0,"servo","SERVO B2"],["ASD-B2-3023-B","AC Servo Drive 3kw, 220V , 19.4A",48737.0,"servo","SERVO B2"],["ECMA-E21830RS","AC Servo Motor 220V, 3KW 14.32NM ,2000r/min ,180mm",49503.0,"servo","SERVO B2"],["ECMA-E21830QS","AC Servo Motor 220V, 3KW 19.1NM ,2000 r/min ,180mm ,with Brake",63322.0,"servo","SERVO B2"],["DOP-103BQ","Touchscreen, 4.3\" TFT LCD, Basic HMI,Color, 2 COM",11183.16,"hmi","hmi delta"],["DOP-103WQ","Touchscreen 4.3'' colors TFT LCD, 2 COM & Ethernet function built-in",14644.21,"hmi","hmi delta"],["DOP-105CQ","Touchscreen, 5.6\" TFT LCD, HMI,Color, 3 com port",19000.0,"hmi","hmi delta"],["DOP-107BV","Touchscreen, 7\" TFT LCD ,Basic HMI ,colors , 2 com port",11200.0,"hmi","hmi delta"],["DOP-107CV","Touchscreen, 7\" TFT LCD ,colors ,3 com port",17200.0,"hmi","hmi delta"],["DOP-107DV","Touchscreen, 7\" TFT LCD ,colors ,1 com port, Ethernet",18000.0,"hmi","hmi delta"],["DOP-107EV","Touchscreen, 7\" TFT LCD ,colors ,2 com port, Ethernet",19500.0,"hmi","hmi delta"],["DOP-107EG","Touchscreen, 7\" TFT LCD ,colors ,2 com port, Ethernet , SD",23500.0,"hmi","hmi delta"],["DOP-108IG","Touchscreen, 8\" TFT LCD ,colors ,3 com port , SD",42000.0,"hmi","hmi delta"],["DOP-110CS","Touchscreen, 10.1\" TFT LCD ,colors ,2 com port",26000.0,"hmi","hmi delta"],["DOP-110IS","Touchscreen, 10.4\" TFT LCD ,colors ,3 com port& Ethernet function built-in ,SD",35000.0,"hmi","hmi delta"],["DOP-110IG","Touchscreen, 10.1\" TFT LCD ,colors ,3 com port& Ethernet function built-in , SD",37500.0,"hmi","hmi delta"],["DOP-110WS","Touchscreen, 10.1\" TFT LCD ,colors ,3 com port& Ethernet function built-in , SD",38000.0,"hmi","hmi delta"],["DOP-115WX","Touchscreen, 15\" TFT LCD ,colors ,4 com port& Ethernet function built-in , SD",90000.0,"hmi","hmi delta"],["TP70P-32TP1R","7'' TFT LCD , colors, touch screen, 16DI/16DO, relay output",17094.74,"hmi","hmi delta"],["TP70P-32TP1T","7'' TFT LCD , colors, touch screen, 16DI/16DO, transistor output",17094.0,"hmi","hmi delta"],["TP70P-16TP1R","7'' TFT LCD, colors, touch screen, 8DI/8DO, relay output",15000.0,"hmi","hmi delta"],["TP70P-16TP1T","7'' TFT LCD, colors, touch screen, 8DI/8DO, transistor output",15000.0,"hmi","hmi delta"],["TP70P-22XA1R","7'' TFT LCD, colors, touch screen, 8DI/8DO, relay output ,4AI/2AO",18770.53,"hmi","hmi delta"],["TP70P-22XA1T","7'' TFT LCD, colors, touch screen, 8DI/8DO,transistor output ,4AI/2AO",18770.0,"hmi","hmi delta"],["TP70P-21EX1R","7'' TFT LCD, colors, touch screen, 8DI/8DO, relay output,2AI/2PT/1AO",20500.0,"hmi","hmi delta"],["TP70P-21EX1T","7'' TFT LCD, colors, touch screen, 8DI/8DO,transistor output,2AI/2PT/1AO",20500.0,"hmi","hmi delta"],["TP70P-211LC1T","7'' TFT LCD, colors, touch screen, 17DI/24DO,transistor output,2AI/2PT/4AO / load cell input",42467.37,"hmi","hmi delta"],["TP02G-AS1","Text panel 2 line",10000.0,"hmi","hmi delta"],["TP04G-AS2","Text panel 4 line",13000.0,"hmi","hmi delta"],["TP08G-BT2","Text panel 8 line",15000.0,"hmi","hmi delta"],["TP04P-32TP1R","Text panel 4 line with plc built in 16DI/16DO, relay output",13000.0,"hmi","hmi delta"],["TP04P-32TP1T","Text panel 4 line with plc built in 16DI/16DO, transistor output",13000.0,"hmi","hmi delta"],["TP04P-22XA1R","Text panel 4 line with plc built in 8DI/8DO, relay output, 4AI , 2AO",14000.0,"hmi","hmi delta"],["TP04P-22XA1T","Text panel 4 line with plc built in 8DI/8DO, transistor output, 4AI , 2AO",14000.0,"hmi","hmi delta"],["TP04P-21EX1R","Text panel 4 line with plc built in 8DI/8DO,relay output , 2AI , 1AO , 2 CH PT100",16252.63,"hmi","hmi delta"],["TP04P-21EX1T","Text panel 4 line with plc built in 8DI/8DO, transistor output , 2AI , 1AO , 2 CH PT101",16252.0,"hmi","hmi delta"],["DVP16ES200R","8I/8O, relay output",7789.47,"plc","PLC"],["DVP16ES200T","8I/8O, transistor output, 2-axis 100kHz pulse output",7789.47,"plc","PLC"],["DVP24ES200R","16I/8O, relay output",9431.58,"plc","PLC"],["DVP24ES200T","16I/8O, transistor output, 2-axis 100kHz pulse output",9431.58,"plc","PLC"],["DVP32ES200R","16I/16O, relay output",10863.16,"plc","PLC"],["DVP32ES200T","16I/16O, transistor output, 2-axis 100kHz pulse output",10863.16,"plc","PLC"],["DVP40ES200R","24I/16O, relay output",12303.16,"plc","PLC"],["DVP40ES200T","24I/16O, transistor output, 2-axis 100kHz pulse output",12303.16,"plc","PLC"],["DVP60ES200R","36I/24O, relay output",16808.42,"plc","PLC"],["DVP60ES200T","36I/24O, transistor output, 2-axis 100kHz pulse output",16808.42,"plc","PLC"],["DVP20EX200R","8I/6O, 4CH AI/2CH AO built-in, relay output",11477.89,"plc","PLC"],["DVP20EX200T","8I/6O, 4CH AI/2CH AO built-in, transistor output, 2-axis 100kHz pulse",11477.89,"plc","PLC"],["DVP16XP211R","8I/8O extension, 24VDC power-in, relay output",5743.16,"plc","PLC"],["DVP16XP211T","8I/8O extension, 24VDC power-in, transistor output",5743.16,"plc","PLC"],["DVP24XP200R","16I/8O extension, 24VDC power-in, relay output",6703.16,"plc","PLC"],["DVP24XP200T","16I/8O extension, 24VDC power-in, transistor output",6703.16,"plc","PLC"],["DVP32XP200R","16I/16O extension, 24VDC power-in, relay output",9018.95,"plc","PLC"],["DVP32XP200T","16I/16O extension, 24VDC power-in, transistor output",9018.95,"plc","PLC"],["DVP08XM211N","8I extension, 24VDC power-in",2332.63,"plc","PLC"],["DVP16XM211N","16I extension, 24VDC power-in",3898.95,"plc","PLC"],["DVP08XN211R","8O extension, 24VDC power-in, relay output",3688.42,"plc","PLC"],["DVP08XN211T","8O extension, 24VDC power-in, transistor output",3688.42,"plc","PLC"],["DVP04AD-E2","4CH AI function module for ES2/EX2",6147.37,"plc","PLC"],["DVP02DA-E2","2CH AO function module for ES2/EX2",6972.63,"plc","PLC"],["DVP04DA-E2","4CH AO function module for ES2/EX2",8614.74,"plc","PLC"],["DVP06XA-E2","4AI/2AO function module for ES2/EX2",8614.74,"plc","PLC"],["DVP04TC-E2","4CH temperature module for ES2/EX2",7789.47,"plc","PLC"],["DVP04PT-E2","4CH pt100 module for ES2/EX2",7789.47,"plc","PLC"],["DVP14SS211R","8I/6O, relay output",4917.89,"plc","PLC"],["DVP14SS211T","8I/6O, transistor output",4917.89,"plc","PLC"],["DVP28SS211R","16I/12O, relay output",8589.47,"plc","PLC"],["DVP28SS211T","16I/12O,transistor output",8589.47,"plc","PLC"],["DVP12SA211R","8I/4O, relay output",6357.89,"plc","PLC"],["DVP12SA211T","8I/4O, transistor output",6357.89,"plc","PLC"],["DVP28SA211R","16I/12O, relay output",8715.79,"plc","PLC"],["DVP28SV11R2","16I/12O, relay output",13120.0,"plc","PLC"],["DVP28SV11T2","16I/12O, transistor output,Ethernet",13120.0,"plc","PLC"],["DVP28SV311R","16I/12O, relay output,Ethernet,CANOpen",17000.0,"plc","PLC"],["DVP28SV311T","16I/12O, transistor output,Ethernet,CANOpen",17000.0,"plc","PLC"],["DVP12SE11R","8I/4O, relay output, Ethernet",13120.0,"plc","PLC"],["DVP12SE11T","8I/4O, transistor output, Ethernet",13120.0,"plc","PLC"],["DVP10SX11R","4I/2O, 2CH AI/2CH AO built-in, relay output",8202.11,"plc","PLC"],["DVP10SX11T","4I/2O, 2CH AI/2CH AO built-in, transistor output",8202.11,"plc","PLC"],["DVP20SX211R","8I/6O, 4CH AI/2CH AO built-in, relay output",10863.16,"plc","PLC"],["DVP20SX211T","8I/6O, 4CH AI/2CH AO built-in, transistor (NPN), 2-axis 100kHz pulse",10863.16,"plc","PLC"],["DVP04AD-S","4CH AI function module for SS/SA/SX/SC/SV",5945.26,"plc","PLC"],["DVP04AD-SL","4CH AI function module for SV (left-side expansion), resolution 16-bit",8614.74,"plc","PLC"],["DVP06AD-S","6CH AI function module for SS/SA/SX/SC/SV",7385.26,"plc","PLC"],["DVP02DA-S","2CH AO function module for SS/SA/SX/SC/SV",7174.74,"plc","PLC"],["DVP04DA-S","4CH AO function module for SS/SA/SX/SC/SV",9018.95,"plc","PLC"],["DVP04DA-SL","4CH AO function module for SV (oeft-side expansion), resolution 16-bit",12303.16,"plc","PLC"],["DVP06XA-S","4AI/2AO function module for SS/SA/SX/SC/SV",6560.0,"plc","PLC"],["DVP04TC-S","4CH temperature module for SS/SA/SX/SC/SV",6972.63,"plc","PLC"],["DVP04PT-S","4CH pt100 module for SS/SA/SX/SC/SV",7250.53,"plc","PLC"],["DVP08SM11N","8I extension",1743.16,"plc","PLC"],["DVP08SM10N","8I extension",3014.74,"plc","PLC"],["DVP16SM11N","16I extension",3073.68,"plc","PLC"],["DVP32SM11N","32I extension, 24VDC power-in",4690.53,"plc","PLC"],["DVP08SN11R","8O extension, relay output",2669.47,"plc","PLC"],["DVP08SN11T","8O extension, transistor output",2669.47,"plc","PLC"],["DVP16SN11T","16O extension, transistor output",3688.42,"plc","PLC"],["DVP08SP11R","4I/4O extension, relay output",2669.47,"plc","PLC"],["DVP08SP11T","4I/4O extension, transistor output",2669.47,"plc","PLC"],["DVP16SP11R","8I/8O extension, relay output",3073.68,"plc","PLC"],["DVP16SP11T","8I/8O extension, transistor output",3073.68,"plc","PLC"],["DVP01LC-SL","Load cell module 1 ch",8202.11,"plc","PLC"],["DVP02LC-SL","Load cell module 2 ch.",13532.63,"plc","PLC"],["DVP201LC-SL","Load cell module 1 ch",8202.11,"plc","PLC"],["DVP202LC-SL","Load cell module 2 ch.",13532.63,"plc","PLC"],["DVP20PM00D","8I/8O, AC power-in, 2-axis 500kHz pulse output",27056.84,"plc","PLC"],["DVP20PM00M","8I/8O, AC power-in, 3-axis 500kHz pulse output",32800.0,"plc","PLC"],["DVP10MC11T","Motion Control -- CANOpen",55343.16,"plc","PLC"],["DVP15MC11T","Motion Control -- CANOpen",65770.0,"plc","PLC"],["DVP50MC11T","Motion Control -- CANOpen",98703.0,"plc","PLC"],["DVPPF01-S","Profibus communication module (Slave) for SS/SA/SX/SC/SV",15166.32,"plc","PLC"],["DVP01PU-S","1-axis motion control module for SS/SA/SX/SC/SV",10248.42,"plc","PLC"],["DVPEN01-SL","Ethernet (MODBUS TCP/IP) communication module for SV (left-side",10248.42,"plc","PLC"],["DVP02TUL-S","Analog Input Controller Module, 2 Channel, 16 Bit, 2 Analog",5591.58,"plc","PLC"],["DVP48EH00R3","24DI / 24DO Relay Output",16810.0,"plc","PLC"],["DVP64EH00R3","32DI / 32DO Relay Output",18500.0,"plc","PLC"],["DVPPS01","24VDC/1A",1500.0,"plc","PLC"],["DVPPS02","24VDC/2A",1750.0,"plc","PLC"],["DVPPS05","24VDC/5A",2750.0,"plc","PLC"],["UC-MS030-01A","PLC Programmig cable",589.47,"plc","PLC"],["UC-MS030-06A","HMI Programmig cable",589.47,"plc","PLC"],["UC-PRG020-12A","PLC Programmig cable with usb",2021.05,"plc","PLC"],["DTC2000R","Temperature Control DELTA DTC Controller ,Output 2- Relay 250V 5A, Power Supply- 24V",5000.0,"plc","PLC"],["DTC2000V","Temperature Control DELTA DTC 24 VDC Din Rail Master Output Voltage. MODBUS RS-485 communication through DTC MASTER DTC1000V. Up to 7 Slave units can be connected to a Master controller",5000.0,"plc","PLC"],["DTC1000R","DTC Controller ,Output 1- Relay 250V 5A, Power Supply- 24V",5000.0,"plc","PLC"],["DTC1000V","Temperature Control DELTA DTC 24 VDC Din Rail Master Output Voltage. MODBUS RS-485 comunication. NEW.",5000.0,"plc","PLC"],["DTA4848R1","",5000.0,"plc","PLC"],["DTB4824VR","",6000.0,"plc","PLC"],["DTB4848R1","",5000.0,"plc","PLC"],["DTV4896R","",7000.0,"plc","PLC"],["AS228T-A","16 DI/ 12 Do 6 Axes, 200kHz built in USB& RS-485*2 & Ethernet& CANopen",17860.0,"plc","PLC"],["AS04AD-A","4CH AI function module for AS",7700.0,"plc","PLC"],["AS04DA-A","4CH AO function module forAS",10300.0,"plc","PLC"],["AS06XA-A","4AI/2AO function module for AS",8800.0,"plc","PLC"],["AS04RTD-A","4CH pt100&NI100 module for AS",8950.0,"plc","PLC"],["AS04TC-A","4CH temperature module for AS",8950.0,"plc","PLC"],["AS02LC-A","Load cell module 2 ch.",14675.0,"plc","PLC"],["AS16AP11R-A","8I/8O extension, relay output",5160.0,"plc","PLC"],["AS16AP11T-A","8I/8O extension, transistor output",5160.0,"plc","PLC"],["AS00SCM-A","Communication Modules/Remote I/O Modules",6370.0,"plc","PLC"],["AS-FEN02","PROFINET port, RJ45 x2 (Switch function), supports PROFINET (Device mode)",6200.0,"plc","PLC"],["AS332T-A","CPU, NPN Output, 1xEthernet port, 2xRS-485 ports, 1xUSB port, 1xMicro SD Card, 2xFunctional Cards, 16DI, 16DO, up to 1024 IOs, 128k steps",25000.0,"plc","PLC"],["CTA4100A","Timer/Counter/Tachometer",5000.0,"plc","PLC"],["VFD3A0MH43ANSAA","1HP 0.75KW 0.75kW,2.7A, 3 phase, 380V+15%, 50HZ/60HZ",16000.0,"vfd","MH300"],["VFD4A2MH43ANSAA","2HP 1.5KW 1.5kW,4.2A, 3 phase, 380V+15%, 50HZ/60HZ",17000.0,"vfd","MH300"],["VFD5A7MH43ANSAA","3HP 2.2KW 2.2kW,5.5A, 3 phase, 380V+15%, 50HZ/60HZ",20000.0,"vfd","MH300"],["VFD9A0MH43ANSAA","5HP 3.7KW 3.7kW,9A, 3 phase, 380V+15%, 50HZ/60HZ",22000.0,"vfd","MH300"],["VFD13AMH43ANSAA","7.5hp 5.5kw 5.5kW,13A, 3 phase, 380V+15%, 50HZ/60HZ",27400.0,"vfd","MH300"],["VFD17AMH43ANSAA","10HP 7.5KW 7.5kW,17A, 3 phase, 380V+15%, 50HZ/60HZ",30100.0,"vfd","MH300"],["VFD25AMH43ANSAA","15HP 11KW 11kW,25A, 3 phase, 380V+15%, 50HZ/60HZ",34800.0,"vfd","MH300"],["VFD32AMH43ANSAA","20HP 15KW 15kW,32A, 3 phase, 380V+15%, 50HZ/60HZ",44050.0,"vfd","MH300"],["VFD38AMH43ANSAA","25HP 18.5KW 18.5kW,38A, 3 phase, 380V+15%, 50HZ/60HZ",53100.0,"vfd","MH300"],["VFD45AMH43ANSAA","30HP 22KW 22kW,45A, 3 phase, 380V+15%, 50HZ/60HZ",60700.0,"vfd","MH300"],["VFD60AMH43ANSAA","40HP 30KW 30kW,60A, 3 phase, 380V+15%, 50HZ/60HZ",70000.0,"vfd","MH300"],["VFD75AMH43ANSAA","50HP 37KW 37kW,75A, 3 phase, 380V+15%, 50HZ/60HZ",80000.0,"vfd","MH300"],["VFD91AMH43ANSAA","60HP 45KW 45kW,91A, 3 phase, 380V+15%, 50HZ/60HZ",93000.0,"vfd","MH300"],["VFD112MH43ANSAA","75HP 55KW 55kW,112A, 3 phase, 380V+15%, 50HZ/60HZ",112000.0,"vfd","MH300"],["VFD150MH43ANSAA","100HP 75KW 75kW,150A, 3 phase, 380V+15%, 50HZ/60HZ",148000.0,"vfd","MH300"],["30HP","Accessories For MH300",0.1,"vfd","MH300"],["EMM-PG01L","30HP PG card, Line-drive (A,B,Z) 300k pulse/sec",4500.0,"vfd","MH300"],["EMM-PG01O","20HP PG card,Open-collect 300k pulse/sec",4250.0,"vfd","MH300"],["EMM-PG01R","30HP PG card, resolver output 7Vrms, resolver input 3.5Vrms",4500.0,"vfd","MH300"],["ASD-B3A-0421-M","AC Servo Drive 220V, 400W, 2.6A",17000.0,"servo","B3A SERVO"],["ECM-B3M-C20604RS1","Delta 220V 400W AC Servo Motor 1.27NM 2.6A 60mm 3000r/min with Keyway Oil Seal",12000.0,"servo","B3A SERVO"],["ACS3-CAPW1105","POWER CABLE 3M",1300.0,"servo","B3A SERVO"],["ACS3-CAEN0105","ENCODER CABLE 3M",3080.0,"servo","B3A SERVO"],["ACS3-CNTB0500","CONNECTOR ''B3A'' SERVO",245.0,"servo","B3A SERVO"],["ASD-B3A-0721-M","AC servo Drive 1ph 220V 750w , 5.1A",19300.0,"servo","B3A SERVO"],["ECM-B3M-C20807RS1","AC Servo Motor 220V 750W 2.39NM 3000rpm with Keyway Oil Seal",13300.0,"servo","B3A SERVO"],["ASD-B3A-1021-M","AC Servo Drive 1ph 220V 1KW , 7.3A",20260.0,"servo","B3A SERVO"],["ECM-B3M-E21310RS1","AC Servo Motor 220V 1KW 4.77NM 2000rpm",21500.0,"servo","B3A SERVO"],["ACS3-CAPWA203","Cable, Power, 3 meter",3650.0,"servo","B3A SERVO"],["ACS3-CAENA105","ENCODER CABLE 3M",3500.0,"servo","B3A SERVO"],["ASD-B3A-1521-M","AC Servo Drive 1ph 220V 1.5KW 8.3A",24850.0,"servo","B3A SERVO"],["ECM-B3M-E21315RS1","AC Servo Motor 1.5kw 2000 RPM 220V 7.16NM 8.3A 2000r/min with Keyway Oil Seal",25850.0,"servo","B3A SERVO"]];
+
+const DeltaPrices = (function(){
+  const KIND_WORDS = {
+    plc:   'PLC',
+    hmi:   'HMI DOP SCREEN',
+    vfd:   'VFD INVERTER',
+    servo: 'SERVO'
+  };
+  // كلمات عربي بتتحول للإنجليزي اللي في القايمة
+  const ARABIC = [
+    [/ب[يى]\s*[اإأ]?ل\s*س[يى]/g, ' PLC '],
+    [/شاش[هة]|تاتش/g, ' HMI '],
+    [/[اإ]ن?فرتر|[اإ]نفيرتر|مغير\s*سرع[هة]/g, ' VFD '],
+    [/سيرفو|سرفو/g, ' SERVO '],
+    [/كابل|كبل/g, ' CABLE '],
+    [/موتور|ماتور/g, ' MOTOR ']
+  ];
+  const DISC_KEY = 'deltaDiscountPct';
+
+  const norm = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, '');
+  const rows = DELTA_PRICES.map(r => ({
+    model: r[0], desc: r[1], list: r[2], kind: r[3],
+    m: norm(r[0]),
+    hay: norm(r[0]) + ' ' + String(KIND_WORDS[r[3]] || '') + ' ' + norm(r[4]) + ' ' +
+         String(r[1]).toUpperCase().replace(/[^A-Z0-9]+/g, ' ')
+  }));
+
+  // الحروف الإنجليزي مكتوبة عربي: «اس اي» = SE ، «اي اس» = ES
+  const LETTERS = {
+    'اس':'S','إس':'S','اي':'E','إي':'E','ئي':'E','ايه':'A','إيه':'A','اية':'A','بي':'B','بى':'B',
+    'سي':'C','سى':'C','دي':'D','دى':'D','اف':'F','إف':'F','جي':'G','اتش':'H','إتش':'H',
+    'اتشي':'H','جاي':'J','كي':'K','ال':'L','إل':'L','ام':'M','إم':'M','ان':'N','إن':'N',
+    'او':'O','أو':'O','كيو':'Q','ار':'R','آر':'R','أر':'R','تي':'T','تى':'T','يو':'U',
+    'في':'V','فى':'V','دبليو':'W','اكس':'X','إكس':'X','واي':'Y','زد':'Z','زي':'Z'
+  };
+  function tokens(q){
+    q = String(q || '');
+    ARABIC.forEach(([re, to]) => { q = q.replace(re, to); });
+    // كل كلمة هي اسم حرف بتبقى الحرف، والحروف اللي جنب بعض بتتلزق (S E -> SE)
+    const words = q.split(/\s+/).filter(Boolean).map(w => LETTERS[w] ? { l: LETTERS[w] } : { w });
+    const parts = [];
+    words.forEach(x => {
+      const last = parts[parts.length - 1];
+      if (x.l && last && last.l) last.l += x.l; else parts.push(x);
+    });
+    q = parts.map(x => x.l || x.w).join(' ');
+    return q.toUpperCase().split(/[^A-Z0-9]+/)
+      .flatMap(t => t.match(/[A-Z]+|[0-9]+/g) || [])   // SE12 -> SE ، 12
+      .filter(Boolean);
+  }
+
+  function search(q, limit){
+    const toks = tokens(q);
+    if (!toks.length) return [];
+    const compact = norm(q);
+    const nums = (String(q).match(/\d+(?:\.\d+)?/g) || []).map(n => ({
+      re: new RegExp('(^|[^0-9.])' + n.replace('.', '\\.') + (n.includes('.') ? '' : '(\\.\\d+)?') + '\\s*(KW|HP|W\\b|"|\'\'|INCH|A\\b)', 'i')
+    }));
+    const out = [];
+    rows.forEach(r => {
+      if (!toks.every(t => r.hay.includes(t))) return;
+      let score = 0;
+      toks.forEach(t => { if (r.m.includes(t)) score += 10 + t.length; });
+      for (let i = 0; i + 1 < toks.length; i++) {
+        if (r.m.includes(toks[i] + toks[i+1]) || r.m.includes(toks[i+1] + toks[i])) score += 15;
+      }
+      // أرقام القدرة والمقاس: 2.2 = 2.2kW ، 10 = شاشة 10"
+      nums.forEach(n => { if (n.re.test(r.desc)) score += 25; });
+      if (compact.length > 2 && r.m.includes(compact)) score += 40;
+      if (compact.length > 2 && r.m.startsWith(compact)) score += 20;
+      out.push({ r, score });
+    });
+    out.sort((a, b) => b.score - a.score || a.r.list - b.r.list);
+    return out.slice(0, limit || 10).map(x => x.r);
+  }
+
+  function discount(){
+    let v = 20;
+    try { const s = localStorage.getItem(DISC_KEY); if (s !== null && s !== '') v = +s; } catch (e) {}
+    return isFinite(v) && v >= 0 && v < 100 ? v : 20;
+  }
+  function setDiscount(v){
+    try { localStorage.setItem(DISC_KEY, String(v)); } catch (e) {}
+  }
+  function net(list){ return Math.round(list * (1 - discount() / 100)); }
+
+  /* ---------- القايمة اللي بتطلع تحت الخانة ---------- */
+  let box = null, input = null, found = [], active = -1;
+
+  function close(){
+    if (box) box.remove();
+    box = null; input = null; found = []; active = -1;
+  }
+
+  function place(){
+    if (!box || !input) return;
+    const r = input.getBoundingClientRect();
+    const w = Math.max(r.width, Math.min(560, window.innerWidth - 24));
+    let left = r.right - w;
+    left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
+    box.style.width = w + 'px';
+    box.style.left = left + 'px';
+    const below = window.innerHeight - r.bottom;
+    if (below < 200 && r.top > below) {
+      box.style.top = ''; box.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+    } else {
+      box.style.bottom = ''; box.style.top = (r.bottom + 4) + 'px';
+    }
+  }
+
+  function render(){
+    const d = discount();
+    box.innerHTML =
+      '<div class="dp-head">أسعار دلتا ' + esc(DELTA_PRICES_DATE) + ' — بعد خصم ' + esc(d) + '%</div>' +
+      found.map((r, i) =>
+        '<div class="dp-opt" role="option" id="dpOpt' + i + '" data-i="' + i + '" aria-selected="' + (i === active) + '">' +
+          '<div class="dp-main"><div class="dp-model">' + esc(r.model) + '</div>' +
+          '<div class="dp-desc">' + esc(r.desc) + '</div></div>' +
+          '<div class="dp-price"><div class="dp-net">' + esc(fmt(net(r.list))) + '</div>' +
+          '<div class="dp-list">' + esc(fmt(Math.round(r.list))) + '</div></div>' +
+        '</div>'
+      ).join('');
+    input.setAttribute('aria-expanded', 'true');
+    const a = box.querySelector('[aria-selected="true"]');
+    if (a) a.scrollIntoView({ block:'nearest' });
+  }
+
+  function open(el){
+    found = search(el.value, 10);
+    if (!found.length) { close(); return; }
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'dp-box';
+      box.setAttribute('role', 'listbox');
+      box.addEventListener('mousedown', e => e.preventDefault());   // الخانة ماتفقدش التركيز
+      box.addEventListener('click', e => {
+        const o = e.target.closest('.dp-opt');
+        if (o) pick(+o.dataset.i);
+      });
+      document.body.appendChild(box);
+    }
+    input = el;
+    active = -1;
+    render();
+    place();
+  }
+
+  function pick(i){
+    const r = found[i], el = input;
+    if (!r || !el || !currentDraft) { close(); return; }
+    const idx = +el.dataset.row;
+    const it = currentDraft.items[idx];
+    if (!it) { close(); return; }
+    const desc = r.desc.length > 70 ? r.desc.slice(0, 70).trim() + '…' : r.desc;
+    it.name = 'Delta ' + r.model + ' — ' + desc;
+    it.price = net(r.list);
+    if (!(+it.qty)) it.qty = 1;
+    el.value = it.name;
+    const priceEl = document.querySelector('input[data-row="' + idx + '"][data-row-field="price"]');
+    if (priceEl) priceEl.value = it.price;
+    const qtyEl = document.querySelector('input[data-row="' + idx + '"][data-row-field="qty"]');
+    if (qtyEl) qtyEl.value = it.qty;
+    const cell = byId('dRowTotal' + idx);
+    if (cell) cell.textContent = fmt((+it.qty || 0) * (+it.price || 0));
+    refreshDraftTotals();
+    close();
+    if (qtyEl) { qtyEl.focus(); qtyEl.select(); }
+  }
+
+  const isName = el => el && el.dataset && el.dataset.rowField === 'name';
+
+  document.addEventListener('input', e => {
+    const el = e.target;
+    if (isName(el)) { open(el); return; }
+    if (el.id === 'dDeltaDisc') {
+      const v = +el.value;
+      if (isFinite(v) && v >= 0 && v < 100) setDiscount(v);
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (!box || e.target !== input) return;
+    if (e.key === 'ArrowDown')      { active = (active + 1) % found.length; render(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp')   { active = active <= 0 ? found.length - 1 : active - 1; render(); e.preventDefault(); }
+    else if (e.key === 'Enter' && active >= 0) { pick(active); e.preventDefault(); }
+    else if (e.key === 'Escape')    { close(); e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  document.addEventListener('focusout', e => { if (e.target === input) close(); });
+  window.addEventListener('resize', place);
+  document.addEventListener('scroll', place, true);
+
+  return { search, discount, setDiscount, net, close };
+})();
+</script>
+<!-- DELTA-PRICES:END -->
 </body>
 </html>
